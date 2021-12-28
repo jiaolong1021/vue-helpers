@@ -6,7 +6,7 @@
 
 <script>
   export default {
-    name: 'electron-zlst'
+    name: 'meteor'
   }
 </script>
 

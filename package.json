@@ -1,5 +1,5 @@
 {
-  "name": "electron-zlst",
+  "name": "meteor",
   "version": "0.0.1",
   "author": "jiaolong1021 <shenjiaolong1021@163.com>",
   "description": "An electron-vue project",
@@ -21,8 +21,8 @@
     "postinstall": "npm run lint:fix"
   },
   "build": {
-    "productName": "electron-zlst",
-    "appId": "zlst.survery",
+    "productName": "meteor",
+    "appId": "sjl.meteor",
     "directories": {
       "output": "build"
     },
@@ -57,12 +57,6 @@
   "dependencies": {
     "axios": "^0.18.0",
     "execa": "^5.0.0",
-    "fluent-ffmpeg": "^2.1.2",
-    "node-media-server": "^2.2.4",
-    "rtmp-player": "^1.0.6",
-    "video.js": "^7.5.2",
-    "videojs-contrib-hls": "^5.15.0",
-    "videojs-flash": "^2.2.1",
     "vue": "^2.5.16",
     "vue-electron": "^1.0.6",
     "vue-router": "^3.0.1",
@@ -86,10 +80,10 @@
     "css-loader": "^0.28.11",
     "del": "^3.0.0",
     "devtron": "^1.4.0",
-    "electron": "^7.1.3",
-    "electron-builder": "^22.9.1",
+    "electron": "^16.0.5",
+    "electron-builder": "^22.11.7",
     "electron-debug": "^3.2.0",
-    "electron-devtools-installer": "^3.1.1",
+    "electron-devtools-installer": "^3.2.0",
     "eslint": "^4.19.1",
     "eslint-config-standard": "^11.0.0",
     "eslint-friendly-formatter": "^4.0.1",
