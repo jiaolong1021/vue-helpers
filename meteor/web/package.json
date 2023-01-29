@@ -1,6 +1,6 @@
 {
   "name": "web",
-  "version": "1.0.7",
+  "version": "1.0.9",
   "description": "vscode web",
   "keywords": [
     "vscode",
@@ -28,5 +28,5 @@
   "scripts": {
     "test": "echo \"Error: run tests from root\" && exit 1"
   },
-  "gitHead": "a7e570bb4358da8775b57744af1e9d03d21427c4"
+  "gitHead": "5561e90cc7dd5c201d8068df1269afaf4dc29024"
 }
