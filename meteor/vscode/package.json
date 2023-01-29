@@ -1,6 +1,6 @@
 {
   "name": "vscode",
-  "version": "1.0.5",
+  "version": "1.0.7",
   "description": "every thing for speed",
   "keywords": [
     "meteor",
@@ -52,5 +52,5 @@
     "esbuild": "0.15.18",
     "esbuild-plugin-copy": "^2.0.2"
   },
-  "gitHead": "4ac6afa6b26b7ec4701b28de5d768172902c2bdb"
+  "gitHead": "a7e570bb4358da8775b57744af1e9d03d21427c4"
 }
