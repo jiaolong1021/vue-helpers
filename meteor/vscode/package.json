@@ -1,6 +1,6 @@
 {
-  "name": "vscode",
-  "version": "1.0.12",
+  "name": "meteor",
+  "version": "1.0.1",
   "description": "every thing for speed",
   "keywords": [
     "meteor",
@@ -28,12 +28,12 @@
     "watch": "npm run build:node -- --watch",
     "prepack:node": "npm run prebuild && npm run build:node -- --minify",
     "release": "npm run release:node",
-    "release:node": "npm run prepack:node",
-    "publish": "vsce publish --target win32-x64 win32-ia32 win32-arm64 linux-x64 linux-arm64 linux-armhf darwin-x64 darwin-arm64 alpine-x64 alpine-arm64",
+    "release:node": "npm run prepack:node && npm run publish",
+    "publish": "vsce package",
     "test": "echo \"Error: run tests from root\" && exit 1"
   },
   "engines": {
-    "vscode": "^1.52.0"
+    "vscode": "^1.74.0"
   },
   "activationEvents": [
     "*",
@@ -47,11 +47,12 @@
       }
     ]
   },
-  "dependencies": {
+  "devDependencies": {
     "@types/vscode": "^1.74.0",
     "axios": "^0.21.1",
     "esbuild": "0.15.18",
-    "esbuild-plugin-copy": "^2.0.2"
-  },
+    "esbuild-plugin-copy": "^2.0.2",
+		"vsce": "latest"
+	},
   "gitHead": "b1cc40df44b9cd73ba96d8b7f0369cc3ce690c45"
 }

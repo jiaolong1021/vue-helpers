@@ -6,7 +6,7 @@
 		"watch:base": "tsc -b tsconfig.build.json -w",
 		"watch:vscode": "cd ./meteor/vscode && npm run watch",
 		"version": "lerna version --exact --force-publish --yes --sync-workspace-lock --no-push --no-git-tag-version",
-		"release": "npm run release:base && npm run release:vscode",
+		"release": "npm run release:vscode",
 		"release:base": "lerna publish --exact --force-publish --yes --sync-workspace-lock",
 		"release:vscode": "cd ./meteor/vscode && npm run release"
 	},

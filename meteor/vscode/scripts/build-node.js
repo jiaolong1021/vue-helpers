@@ -62,5 +62,4 @@ require('esbuild').build({
 		// },
 	],
 }).then(() => {
-	console.log('esbuild开启')
 }).catch(() => process.exit(1))
