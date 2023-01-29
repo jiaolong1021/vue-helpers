@@ -1,0 +1,10 @@
+{
+	"files": [],
+	"include": [],
+	"references": [
+		// IDE
+		{
+			"path": "./tsconfig.json"
+		},
+	]
+}
