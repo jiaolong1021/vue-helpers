@@ -2,6 +2,9 @@
 	"files": [],
 	"include": [],
 	"references": [
+		{
+			"path": "./meteor/vscode/tsconfig.build.json"
+		},
 		// IDE
 		{
 			"path": "./tsconfig.json"
