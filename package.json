@@ -5,7 +5,10 @@
 		"watch": "npm run build && (npm run watch:base & npm run watch:vscode)",
 		"watch:base": "tsc -b tsconfig.build.json -w",
 		"watch:vscode": "cd ./meteor/vscode && npm run watch",
-		"version:test": "lerna version --exact --force-publish --yes --sync-workspace-lock --no-push --no-git-tag-version"
+		"version": "lerna version --exact --force-publish --yes --sync-workspace-lock --no-push --no-git-tag-version",
+		"release": "npm run release:base && npm run release:vscode",
+		"release:base": "lerna publish --exact --force-publish --yes --sync-workspace-lock",
+		"release:vscode": "cd ./meteor/vscode && npm run release"
 	},
 	"devDependencies": {
 		"@types/node": "latest",
@@ -13,6 +16,8 @@
 		"vite": "latest"
 	},
 	"optionalDependencies": {
+		"@lerna-lite/cli": "latest",
+		"@vscode/test-web": "latest"
 	},
 	"pnpm": {
 		"overrides": {
