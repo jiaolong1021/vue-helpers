@@ -1,6 +1,6 @@
 {
   "name": "meteor",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "every thing for speed",
   "keywords": [
     "meteor",
@@ -52,7 +52,7 @@
     "axios": "^0.21.1",
     "esbuild": "0.15.18",
     "esbuild-plugin-copy": "^2.0.2",
-		"vsce": "latest"
-	},
+    "vsce": "latest"
+  },
   "gitHead": "b1cc40df44b9cd73ba96d8b7f0369cc3ce690c45"
 }
