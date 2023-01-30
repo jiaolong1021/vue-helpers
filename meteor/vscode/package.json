@@ -42,8 +42,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "hello",
-        "title": "hello"
+        "command": "meteor.newProject",
+        "title": "新建工程"
       }
     ]
   },
@@ -52,6 +52,8 @@
     "axios": "^0.21.1",
     "esbuild": "0.15.18",
     "esbuild-plugin-copy": "^2.0.2",
+    "execa": "^6.1.0",
+    "opn": "^6.0.0",
     "vsce": "latest"
   },
   "gitHead": "b1cc40df44b9cd73ba96d8b7f0369cc3ce690c45"
