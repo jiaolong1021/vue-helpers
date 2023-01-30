@@ -2,8 +2,8 @@ import * as path from 'path';
 import * as os from 'os'
 import { window, StatusBarAlignment, ExtensionContext, commands, WebviewPanel, ViewColumn, Uri, Disposable, OpenDialogOptions } from 'vscode'
 import { getHtmlForWebview, store } from './util'
-const fs = require('fs');
-const execa = require('execa');
+import * as fs from 'fs'
+import { execa } from 'execa'
 
 export class ProjectProvider {
   private projectCommandId: string = 'meteor.newProject'
