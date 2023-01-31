@@ -70,7 +70,7 @@ export class ProjectProvider {
     // 切换
     this.activeView.onDidChangeViewState(() => {
       if (this.activeView?.visible) {
-        console.log('onDidChangeViewState')
+        // console.log('onDidChangeViewState')
       }
     }, null, this._disposables)
     // 处理来自webview的信息

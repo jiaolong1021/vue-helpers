@@ -44,8 +44,153 @@
       {
         "command": "meteor.newProject",
         "title": "新建工程"
+      },
+      {
+        "command": "meteor.componentUpload",
+        "title": "上传",
+        "icon": {
+          "light": "asset/light/upload.svg",
+          "dark": "asset/dark/upload.svg"
+        }
+      },
+      {
+        "command": "meteor.componentSee",
+        "title": "查看",
+        "icon": {
+          "light": "asset/light/eye.svg",
+          "dark": "asset/dark/eye.svg"
+        }
+      },
+      {
+        "command": "meteor.componentSync",
+        "title": "同步",
+        "icon": {
+          "light": "asset/light/sync.svg",
+          "dark": "asset/dark/sync.svg"
+        }
+      },
+      {
+        "command": "meteor.interfaceExplain",
+        "title": "使用说明",
+        "icon": {
+          "light": "asset/light/eye.svg",
+          "dark": "asset/dark/eye.svg"
+        }
+      },
+      {
+        "command": "meteor.interfaceSync",
+        "title": "同步",
+        "icon": {
+          "light": "asset/light/sync.svg",
+          "dark": "asset/dark/sync.svg"
+        }
+      },
+      {
+        "command": "meteor.interfaceSetting",
+        "title": "设置",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "meteor.packageSetting",
+        "title": "设置",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "meteor.packageRun",
+        "title": "运行",
+        "icon": "$(run)"
+      },
+      {
+        "command": "meteor.deploySetting",
+        "title": "设置",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "meteor.deployRun",
+        "title": "运行",
+        "icon": "$(run)"
+      },
+      {
+        "command": "meteor.setting",
+        "title": "设置",
+        "icon": {
+          "light": "asset/light/esetting.svg",
+          "dark": "asset/dark/esetting.svg"
+        }
       }
-    ]
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "meteor",
+          "name": "meteor集成环境",
+          "icon": "$(json)",
+          "visibility": "visible",
+          "contextualTitle": "meteor集成环境"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "meteor.setting",
+          "group": "navigation",
+          "when": "view == meteor"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "meteor.componentSee",
+          "group": "inline",
+          "when": "view == meteor && viewItem == componentTreeItem"
+        },
+        {
+          "command": "meteor.componentUpload",
+          "group": "inline",
+          "when": "view == meteor && viewItem == componentTreeItem"
+        },
+        {
+          "command": "meteor.componentSync",
+          "group": "inline",
+          "when": "view == meteor && viewItem == componentTreeItem"
+        },
+        {
+          "command": "meteor.interfaceExplain",
+          "group": "inline",
+          "when": "view == meteor && viewItem == interfaceTreeItem"
+        },
+        {
+          "command": "meteor.interfaceSync",
+          "group": "inline",
+          "when": "view == meteor && viewItem == interfaceTreeItem"
+        },
+        {
+          "command": "meteor.interfaceSetting",
+          "group": "inline",
+          "when": "view == meteor && viewItem == interfaceTreeItem"
+        },
+        {
+          "command": "meteor.packageSetting",
+          "group": "inline",
+          "when": "view == meteor && viewItem == packageTreeItem"
+        },
+        {
+          "command": "meteor.packageRun",
+          "group": "inline",
+          "when": "view == meteor && viewItem == packageTreeItem"
+        },
+        {
+          "command": "meteor.deploySetting",
+          "group": "inline",
+          "when": "view == meteor && viewItem == deployTreeItem"
+        },
+        {
+          "command": "meteor.deployRun",
+          "group": "inline",
+          "when": "view == meteor && viewItem == deployTreeItem"
+        }
+      ]
+    }
   },
   "devDependencies": {
     "@types/vscode": "^1.74.0",
