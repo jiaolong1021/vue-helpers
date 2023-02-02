@@ -17,7 +17,7 @@ importers:
       '@vscode/test-web': registry.npmmirror.com/@vscode/test-web/0.0.34
     devDependencies:
       '@types/node': registry.npmmirror.com/@types/node/18.11.18
-      typescript: registry.npmmirror.com/typescript/4.9.4
+      typescript: registry.npmmirror.com/typescript/4.9.5
       vite: registry.npmmirror.com/vite/4.0.4_@types+node@18.11.18
 
   meteor/vscode:
@@ -27,6 +27,7 @@ importers:
       esbuild: 0.15.18
       esbuild-plugin-copy: ^2.0.2
       execa: ^6.1.0
+      jsonc-parser: ^3.2.0
       opn: ^6.0.0
       vsce: latest
     devDependencies:
@@ -35,6 +36,7 @@ importers:
       esbuild: registry.npmmirror.com/esbuild/0.15.18
       esbuild-plugin-copy: registry.npmmirror.com/esbuild-plugin-copy/2.0.2_esbuild@0.15.18
       execa: registry.npmmirror.com/execa/6.1.0
+      jsonc-parser: registry.npmmirror.com/jsonc-parser/3.2.0
       opn: registry.npmmirror.com/opn/6.0.0
       vsce: registry.npmmirror.com/vsce/2.15.0
 
@@ -3548,6 +3550,12 @@ packages:
     dev: false
     optional: true
 
+  registry.npmmirror.com/jsonc-parser/3.2.0:
+    resolution: {integrity: sha512-gfFQZrcTc8CnKXp6Y4/CBT3fTc0OVuDofpre4aEeEpSBPV5X5v4+Vmx+8snU7RLPrNHPKSgLxGo9YuQzz20o+w==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npmmirror.com/jsonc-parser/-/jsonc-parser-3.2.0.tgz}
+    name: jsonc-parser
+    version: 3.2.0
+    dev: true
+
   registry.npmmirror.com/jsonfile/6.1.0:
     resolution: {integrity: sha512-5dgndWOriYSm5cnYaJNhalLNDKOqFwyDB/rr1E9ZsGciGvKPs8R2xYGCacuf3z6K1YKDz182fd+fY3cn3pMqXQ==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npmmirror.com/jsonfile/-/jsonfile-6.1.0.tgz}
     name: jsonfile
@@ -6266,10 +6274,10 @@ packages:
     dev: false
     optional: true
 
-  registry.npmmirror.com/typescript/4.9.4:
-    resolution: {integrity: sha512-Uz+dTXYzxXXbsFpM86Wh3dKCxrQqUcVMxwU54orwlJjOpO3ao8L7j5lH+dWfTwgCwIuM9GQ2kvVotzYJMXTBZg==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npmmirror.com/typescript/-/typescript-4.9.4.tgz}
+  registry.npmmirror.com/typescript/4.9.5:
+    resolution: {integrity: sha512-1FXk9E2Hm+QzZQ7z+McJiHL4NW1F2EzMu9Nq9i3zAaGqibafqYwCVU6WyWAuyQRRzOlxou8xZSyXLEN8oKj24g==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npmmirror.com/typescript/-/typescript-4.9.5.tgz}
     name: typescript
-    version: 4.9.4
+    version: 4.9.5
     engines: {node: '>=4.2.0'}
     hasBin: true
     dev: true

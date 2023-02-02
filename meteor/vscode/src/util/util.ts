@@ -1,5 +1,5 @@
 import * as os from 'os'
-import { workspace, commands, Webview, Uri, ConfigurationTarget } from 'vscode';
+import { workspace, commands, Webview, Uri, ConfigurationTarget, TextDocument, Position } from 'vscode';
 import * as path from 'path'
 const opn = require('opn');
 export const url = {
@@ -130,4 +130,13 @@ export const store = {
   get: (key: string) => {
     return workspace.getConfiguration('meteor').get(key);
   }
+}
+
+export function getCurrentWord(document: TextDocument, position: Position) {
+  let i = position.character - 1;
+  const text = document.lineAt(position.line).text;
+  while (i >= 0 && ' \t\n\r\v":{[,'.indexOf(text.charAt(i)) === -1) {
+    i--;
+  }
+  return text.substring(i + 1, position.character);
 }

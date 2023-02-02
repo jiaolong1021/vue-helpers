@@ -1,7 +1,7 @@
 import * as path from 'path';
 import * as os from 'os'
 import { window, StatusBarAlignment, ExtensionContext, commands, WebviewPanel, ViewColumn, Uri, Disposable, OpenDialogOptions } from 'vscode'
-import { getHtmlForWebview, store } from './util'
+import { getHtmlForWebview, store } from './util/util'
 import * as fs from 'fs'
 import { execa } from 'execa'
 

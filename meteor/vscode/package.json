@@ -70,7 +70,7 @@
         }
       },
       {
-        "command": "meteor.interfaceExplain",
+        "command": "meteor.explain",
         "title": "使用说明",
         "icon": {
           "light": "asset/light/eye.svg",
@@ -117,6 +117,26 @@
           "light": "asset/light/esetting.svg",
           "dark": "asset/dark/esetting.svg"
         }
+      },
+      {
+        "command": "meteor.envDev",
+        "title": "开发环境"
+      },
+      {
+        "command": "meteor.envTest",
+        "title": "测试环境"
+      },
+      {
+        "command": "meteor.envProduct",
+        "title": "生产环境"
+      },
+      {
+        "command": "meteor.deployVisit",
+        "title": "访问",
+        "icon": {
+          "light": "asset/light/eye.svg",
+          "dark": "asset/dark/eye.svg"
+        }
       }
     ],
     "views": {
@@ -136,6 +156,23 @@
           "command": "meteor.setting",
           "group": "navigation",
           "when": "view == meteor"
+        },
+        {
+          "command": "meteor.explain",
+          "group": "navigation",
+          "when": "view == meteor"
+        },
+        {
+          "command": "meteor.envDev",
+          "when": "view == meteor"
+        },
+        {
+          "command": "meteor.envTest",
+          "when": "view == meteor"
+        },
+        {
+          "command": "meteor.envProduct",
+          "when": "view == meteor"
         }
       ],
       "view/item/context": [
@@ -153,11 +190,6 @@
           "command": "meteor.componentSync",
           "group": "inline",
           "when": "view == meteor && viewItem == componentTreeItem"
-        },
-        {
-          "command": "meteor.interfaceExplain",
-          "group": "inline",
-          "when": "view == meteor && viewItem == interfaceTreeItem"
         },
         {
           "command": "meteor.interfaceSync",
@@ -188,6 +220,11 @@
           "command": "meteor.deployRun",
           "group": "inline",
           "when": "view == meteor && viewItem == deployTreeItem"
+        },
+        {
+          "command": "meteor.deployVisit",
+          "group": "inline",
+          "when": "view == meteor && viewItem == deployTreeItem"
         }
       ]
     }
@@ -198,6 +235,7 @@
     "esbuild": "0.15.18",
     "esbuild-plugin-copy": "^2.0.2",
     "execa": "^6.1.0",
+    "jsonc-parser": "^3.2.0",
     "opn": "^6.0.0",
     "vsce": "latest"
   },
