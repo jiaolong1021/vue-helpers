@@ -1162,6 +1162,7 @@ ${space}},\n`;
             });
           }
           retPromise()
+          window.showInformationMessage('同步成功')
         }).catch(() => {
           retPromise()
         })
