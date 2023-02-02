@@ -7,7 +7,7 @@ import { execa } from 'execa'
 
 export class ProjectProvider {
   private projectCommandId: string = 'meteor.newProject'
-  private readonly viewType = 'meteorCreatProject'
+  private readonly viewType = 'meteorProject'
   public context: ExtensionContext
   public activeView: WebviewPanel | undefined;
   private _disposables: Disposable[] = [];

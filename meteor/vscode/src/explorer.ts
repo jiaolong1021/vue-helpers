@@ -129,9 +129,6 @@ export class ExplorerProvider {
         }
       }
     }))
-    this.context.subscriptions.push(commands.registerCommand('meteor.componentSee', () => {
-      open(url.component)
-    }))
   }
 
   // meteor.json hover, item provider
@@ -188,6 +185,11 @@ class JsonHoverProvider implements HoverProvider {
     cloudUrl: '容器云访问地址',
     cloudUsername: '容器云登录账号',
     cloudPassword: '容器云登录密码',
+    rootPath: "根路径",
+    view: '页面根路径',
+    api: '接口根路径',
+    component: '组件根路径',
+    store: 'store根路径',
   }
   provideHover(document: TextDocument, position: Position): ProviderResult<Hover> {
     const currentWord = getCurrentWordByHover(document, position);
@@ -219,6 +221,22 @@ class JSONCompletionItemProvider implements CompletionItemProvider {
         }, {
           label: 'product',
           documentation: '生产环境'
+        }]
+      }
+    } else if (location.matches(['rootPath'])) {
+      if (!location.isAtPropertyKey) {
+        items = [{
+          label: 'view',
+          documentation: '页面根路径'
+        }, {
+          label: 'component',
+          documentation: '组件根路径'
+        }, {
+          label: 'api',
+          documentation: '接口根路径'
+        }, {
+          label: "store",
+          documentation: 'store根路径'
         }]
       }
     } else if (location.matches(['development']) || location.matches(['test']) || location.matches(['product'])) {

@@ -279,6 +279,16 @@
           "when": "view == meteor && viewItem == libraryTreeItem"
         }
       ]
+    },
+    "configuration": {
+      "title": "meteor",
+      "type": "object",
+      "properties": {
+        "meteor.user": {
+          "type": "string",
+          "default": ""
+        }
+      }
     }
   },
   "devDependencies": {

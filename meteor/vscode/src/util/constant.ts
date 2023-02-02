@@ -1,5 +1,11 @@
 export const config = `{
   "activeEnv": "development",
+  "rootPath": {
+    "view": "",
+    "component": "",
+    "api": "",
+    "store": ""
+  },
   "development": {
     "interface": {
       "swaggerUrl": ""
