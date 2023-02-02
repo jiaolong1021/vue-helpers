@@ -1048,7 +1048,7 @@ ${space}},\n`;
     if (user) {
       userInfo = JSON.parse(user)
     } else {
-      window.showInformationMessage('请先[登录](command:meteor.upload)')
+      window.showInformationMessage('请先[登录](command:meteor.componentUpload)')
       return
     }
     let res = await this.fetch.get('widget?tag=&type=&searchValue=', {
@@ -1098,7 +1098,7 @@ ${space}},\n`;
               if (/^@file:/gi.test(codeItem.code)) {
                 const res: any = await this.fetch.get('/getCodeFile?name=' + codeItem.code.replace('@file:', ''), {
                   headers: {
-                    token: user.token
+                    token: userInfo.token
                   }
                 })
                 codeItem.code = res.data.data || ''
