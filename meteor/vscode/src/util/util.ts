@@ -4,7 +4,8 @@ import * as path from 'path'
 const opn = require('opn');
 export const url = {
   base: 'http://www.80fight.cn:8080',
-  official: 'http://www.80fight.cn'
+  official: 'http://www.80fight.cn',
+  component: 'http://front.80fight.cn'
 }
 export function getPlatform() {
   return os.platform().includes('win')
@@ -139,4 +140,27 @@ export function getCurrentWord(document: TextDocument, position: Position) {
     i--;
   }
   return text.substring(i + 1, position.character);
+}
+
+export function getCurrentWordByHover(document: TextDocument, position: Position) {
+  const line = document.lineAt(position.line);
+  const textSplite = [' ', '<', '>', '"', '\'', '.', '\\', "=", ":"];
+  // 通过前后字符串拼接成选择文本
+  let posIndex = position.character;
+  let textMeta = line.text.substr(posIndex, 1);
+  let selectText = '';
+  // 前向获取符合要求的字符串
+  while(textSplite.indexOf(textMeta) === -1 && posIndex <= line.text.length) {
+    selectText += textMeta;
+    textMeta = line.text.substr(++posIndex, 1);
+  }
+  // 往后获取符合要求的字符串
+  posIndex = position.character - 1;
+  textMeta = line.text.substr(posIndex, 1);
+  while(textSplite.indexOf(textMeta) === -1 && posIndex > 0) {
+    selectText = textMeta + selectText;
+    textMeta = line.text.substr(--posIndex, 1);
+  }
+  textMeta = line.text.substr(posIndex, 1);
+  return selectText
 }

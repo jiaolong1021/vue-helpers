@@ -2,15 +2,47 @@ export const config = `{
   "activeEnv": "development",
   "development": {
     "interface": {
-      "swaggerUrl": "http://ws-pcs-cost.ws.dev.prd.uimpcloud.com/swagger-ui.html"
+      "swaggerUrl": ""
     },
     "package": {
-
+      "jenkinsUrl": "http://jenkins.cs2025.com",
+      "jenkinsUsername": "admin",
+      "jenkinsPassword": "admin"
     },
     "deploy": {
-      
+      "cloudUrl": "http://cloud.cs2025.com",
+      "cloudUsername": "admin",
+      "cloudPassword": "zlst8888"
     }
   },
-  "test": {},
-  "product": {}
+  "test": {
+    "interface": {
+      "swaggerUrl": ""
+    },
+    "package": {
+      "jenkinsUrl": "http://jenkins.cs2025.com",
+      "jenkinsUsername": "admin",
+      "jenkinsPassword": "admin"
+    },
+    "deploy": {
+      "cloudUrl": "http://cloud.cs2025.com",
+      "cloudUsername": "admin",
+      "cloudPassword": "zlst8888"
+    }
+  },
+  "product": {
+    "interface": {
+      "swaggerUrl": ""
+    },
+    "package": {
+      "jenkinsUrl": "http://jenkins.cs2025.com",
+      "jenkinsUsername": "admin",
+      "jenkinsPassword": "admin"
+    },
+    "deploy": {
+      "cloudUrl": "http://cloud.cs2025.com",
+      "cloudUsername": "admin",
+      "cloudPassword": "zlst8888"
+    }
+  }
 }`

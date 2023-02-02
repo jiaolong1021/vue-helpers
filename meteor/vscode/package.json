@@ -91,6 +91,14 @@
         "icon": "$(settings-gear)"
       },
       {
+        "command": "meteor.interfaceVisit",
+        "title": "swagger访问",
+        "icon": {
+          "light": "asset/light/publish.svg",
+          "dark": "asset/dark/publish.svg"
+        }
+      },
+      {
         "command": "meteor.packageSetting",
         "title": "设置",
         "icon": "$(settings-gear)"
@@ -99,6 +107,14 @@
         "command": "meteor.packageRun",
         "title": "运行",
         "icon": "$(run)"
+      },
+      {
+        "command": "meteor.packageVisit",
+        "title": "jenkins访问",
+        "icon": {
+          "light": "asset/light/publish.svg",
+          "dark": "asset/dark/publish.svg"
+        }
       },
       {
         "command": "meteor.deploySetting",
@@ -132,10 +148,26 @@
       },
       {
         "command": "meteor.deployVisit",
-        "title": "访问",
+        "title": "容器云访问",
+        "icon": {
+          "light": "asset/light/publish.svg",
+          "dark": "asset/dark/publish.svg"
+        }
+      },
+      {
+        "command": "meteor.deployWebVisit",
+        "title": "Web网页访问",
         "icon": {
           "light": "asset/light/eye.svg",
           "dark": "asset/dark/eye.svg"
+        }
+      },
+      {
+        "command": "meteor.libraryVisit",
+        "title": "仓库访问",
+        "icon": {
+          "light": "asset/light/publish.svg",
+          "dark": "asset/dark/publish.svg"
         }
       }
     ],
@@ -202,12 +234,22 @@
           "when": "view == meteor && viewItem == interfaceTreeItem"
         },
         {
+          "command": "meteor.interfaceVisit",
+          "group": "inline",
+          "when": "view == meteor && viewItem == interfaceTreeItem"
+        },
+        {
           "command": "meteor.packageSetting",
           "group": "inline",
           "when": "view == meteor && viewItem == packageTreeItem"
         },
         {
           "command": "meteor.packageRun",
+          "group": "inline",
+          "when": "view == meteor && viewItem == packageTreeItem"
+        },
+        {
+          "command": "meteor.packageVisit",
           "group": "inline",
           "when": "view == meteor && viewItem == packageTreeItem"
         },
@@ -225,6 +267,16 @@
           "command": "meteor.deployVisit",
           "group": "inline",
           "when": "view == meteor && viewItem == deployTreeItem"
+        },
+        {
+          "command": "meteor.deployWebVisit",
+          "group": "inline",
+          "when": "view == meteor && viewItem == deployTreeItem"
+        },
+        {
+          "command": "meteor.libraryVisit",
+          "group": "inline",
+          "when": "view == meteor && viewItem == libraryTreeItem"
         }
       ]
     }
