@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { ProjectProvider } from './project'
 import { ExplorerProvider } from './explorer'
 import { ComponentProvider } from './component'
+import { IntfProvider } from './intf'
 
 export function activate(context: vscode.ExtensionContext) {
   // 工程
@@ -14,4 +15,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const component = new ComponentProvider(context)
   component.register()
+
+  const intf = new IntfProvider(context, explorer)
+  intf.register()
 }

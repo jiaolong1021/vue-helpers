@@ -7,6 +7,7 @@ import * as fs from 'fs'
 import { config } from './util/constant'
 import { getLocation } from 'jsonc-parser'
 import { execa } from 'execa'
+import axios, { AxiosInstance } from 'axios';
 
 // 仓库
 class LibraryTreeItem extends TreeItem {
@@ -78,10 +79,17 @@ export class ExplorerProvider {
   public view: TreeView<TreeItem> | undefined
   public projectRootPath: string = ''
   private packageName: string = 'meteor.json'
-  private activeEnv: string = 'development'
+  public activeEnv: string = 'development'
+  public activeEnvName: string = '开发'
+  public config: any
+  public fetch: AxiosInstance
 
   constructor(context: ExtensionContext) {
     this.context = context
+    this.fetch = axios.create({
+      baseURL: url.base,
+      withCredentials: false
+    })
   }
   
   public register() {
@@ -105,6 +113,7 @@ export class ExplorerProvider {
             meteorConfig = meteorConfig.replace(new RegExp(`"activeEnv": "${this.activeEnv}"`, 'gi'), `"activeEnv": "${env.env}"`)
             fs.writeFileSync(path.join(this.projectRootPath, this.packageName), meteorConfig)
           }
+          this.config = JSON.parse(meteorConfig)
           this.setEnv(env.env, env.name)
         })
       )
@@ -129,6 +138,28 @@ export class ExplorerProvider {
         }
       }
     }))
+    this.watcherProvider()
+  }
+
+  // 配置文件监听器
+  public watcherProvider() {
+    if (workspace.workspaceFolders) {
+      const watcher = workspace.createFileSystemWatcher('**/meteor.json')
+      watcher.onDidChange(() => { this.updateConfig() })
+      watcher.onDidCreate(() => { this.updateConfig() })
+      watcher.onDidDelete(() => { this.updateConfig() })
+    }
+  }
+
+  // 更新配置
+  public updateConfig() {
+    let meteorConfig = fs.readFileSync(path.join(this.projectRootPath, this.packageName), 'utf-8')
+    if (meteorConfig) {
+      try {
+        this.config = JSON.parse(meteorConfig)
+      } catch (error) {
+      }
+    }
   }
 
   // meteor.json hover, item provider
@@ -140,6 +171,12 @@ export class ExplorerProvider {
 
   public setEnv(env: string, envName: string) {
     this.activeEnv = env
+    let nameKey: any = {
+      development: '开发',
+      test: '测试',
+      product: '生产',
+    }
+    this.activeEnvName = nameKey[env]
     this.view && (this.view.title = `meteor集成环境[${envName}]`)
   }
 
@@ -151,6 +188,7 @@ export class ExplorerProvider {
       let meteorConfig: any = fs.readFileSync(meteorJsonPath, 'utf-8')
       if (meteorConfig) {
         meteorConfig = JSON.parse(meteorConfig)
+        this.config = meteorConfig
         if (meteorConfig.activeEnv) {
           let nameKey: any = {
             development: '开发',
@@ -162,6 +200,7 @@ export class ExplorerProvider {
       }
     } else {
       fs.writeFileSync(meteorJsonPath, config)
+      this.config = config
       if (fs.existsSync(gitignorePath)) {
         fs.appendFileSync(gitignorePath, '\n' + this.packageName)
       }
