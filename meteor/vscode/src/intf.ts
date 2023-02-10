@@ -30,6 +30,9 @@ export class IntfProvider {
   private projectRootPath: string = '' // 工程所在位置
   public static apiCompletionItem: CompletionItem[] = []
   public projectApiPath: string = ''
+  public requestPath: string = ''
+  public rootPrefix: string = ''
+  public rootReplace: string = ''
   public definitions: any = {}
   private tabSpace: string = ''
   public paramsKeys: any = {
@@ -54,11 +57,27 @@ export class IntfProvider {
     this.explerer = explerer
     this.projectRootPath = getWorkspaceRoot('')
     this.fileType = fs.existsSync(path.join(this.projectRootPath, 'tsconfig.json')) ? 'ts' : 'js'
-    this.projectApiPath = 'src/api'
-    if (this.explerer.config.rootPath && this.explerer.config.rootPath.api) {
-      this.projectApiPath = this.explerer.config.rootPath.api
-    }
+    this.projectApiPath = 'api'
     this.tabSpace = setTabSpace()
+    this.setConfig()
+  }
+
+  public setConfig() {
+    if (this.explerer.config.rootPath) {
+      if (this.explerer.config.rootPath.api) {
+        this.projectApiPath = this.explerer.config.rootPath.api
+      }
+      if (this.explerer.config.rootPath.request) {
+        this.requestPath = this.explerer.config.rootPath.request
+      }
+      if (this.explerer.config.rootPath.root) {
+        let prefix = this.explerer.config.rootPath.root
+        if (prefix) {
+          this.rootPrefix = prefix.split('=')[0]
+          this.rootReplace = prefix.split('=')[1]
+        }
+      }
+    }
   }
 
   public register() {
@@ -92,6 +111,7 @@ export class IntfProvider {
       await window.showTextDocument(document, { preserveFocus: true, selection: new Selection(new Position(x, y), new Position(x, y)) });
     }))
     this.context.subscriptions.push(commands.registerCommand('meteor.interfaceSync', () => {
+      this.setConfig()
       this.getSwaggerUrl(true)
       this.url && this.getApi(true)
     }))
@@ -99,11 +119,98 @@ export class IntfProvider {
       this.getSwaggerUrl(true)
       this.url && open(this.url)
     }))
+    this.context.subscriptions.push(commands.registerCommand('meteor.generateApiFile', (params) => {
+      this.generateImport(params.apiName)
+      this.generateApiFile(params.apiName)
+    }))
     this.context.subscriptions.push(
       languages.registerCompletionItemProvider(['vue', 'javascript', 'typescript', 'html', 'wxml'], new ApiCompletionItemProvider(), '')
     )
     this.getSwaggerUrl(false)
     this.url && this.getApi(false)
+  }
+
+  // 导入文件生成
+  public generateImport(apiName: string) {
+    let editor = window.activeTextEditor;
+    if (!editor) { return; }
+    commands.executeCommand('vscode.executeDocumentSymbolProvider', editor.document.uri).then(async (symbols: any) => {
+      // 拼装插入内容位置、内容
+      // let doc: any[] = []
+      if (!symbols) {
+        return
+      }
+      symbols.forEach((symbolItem: any) => {
+        // 查询import插入位置
+        if (symbolItem.name.includes('script')) {
+          let symbolLine = symbolItem.range.c.c
+          if (symbolItem.children.length > 0) {
+            let currentLine = symbolItem.children[0].range.c.c
+            let insertLine = -1
+            let insertCharacter = 0
+            let filePath = this.getFullPath(this.api[apiName].filePath)
+            let insertText = ''
+            let isExist = false
+            if (currentLine > 2) {
+              while(currentLine > symbolLine) {
+                --currentLine
+                let text = editor?.document.lineAt(currentLine).text.trim()
+                if (text?.includes(filePath)) {
+                  insertLine = currentLine
+                  if (!new RegExp(`{.*${apiName}.*}`, 'gi').test(text)) {
+                    insertCharacter = text.replace(/\s*}.*/gi, '').length
+                    insertText = `, ${apiName}`
+                  } else {
+                    isExist = true
+                  }
+                } else {
+                  if (text !== '' && insertLine === -1) {
+                    insertLine = currentLine + 1
+                    insertText = `import { ${apiName} } from '${filePath}'\n`
+                  }
+                }
+              }
+            }
+            if (!isExist) {
+              editor?.edit((editBuilder: any) => {
+                editBuilder.insert(new Position(insertLine, insertCharacter), insertText);
+              })
+            }
+          }
+        }
+      })
+    })
+  }
+
+  // 获取全路径
+  public getFullPath(basePath: string) {
+    return basePath.replace(new RegExp(`^${this.rootReplace}`, 'gi'), this.rootPrefix)
+  }
+
+  // 生成额外文件
+  public generateApiFile(apiName: string) {
+    let apiFilePath = ''
+    let api = this.api[apiName]
+    try {
+      apiFilePath = path.join(this.projectRootPath, api.filePath + '.' + this.fileType)
+      fs.statSync(apiFilePath)
+    } catch (error) {
+      let filePath = this.getFullPath(this.requestPath)
+      fs.writeFileSync(apiFilePath, `import request from \'${filePath}'\nconst baseURL = ''\n`);
+    }
+    let apiText = fs.readFileSync(apiFilePath, 'utf-8')
+    // 存在
+    if (new RegExp(`export\\s*function\\s*${apiName}\\(`).test(apiText)) {
+      return
+    }
+    let func = `export function ${apiName}(config${this.fileType === 'ts' ? ': any' : ''}) {
+  return request({
+    url: \`\${baseURL}${api.reqPath.replace(/{/gi, '${config.path.')}\`,
+    method: '${api.method}',
+    ...config
+  })
+}\n`;
+    fs.appendFileSync(apiFilePath, api.annotation + func, 'utf-8');
   }
 
   // 获取已配置swagger地址
@@ -218,7 +325,7 @@ export class IntfProvider {
             reqPath: apiPath,
             annotation: annotation,
             description: reqBody.description || '',
-            filePath: path.join(this.projectRootPath, this.projectApiPath, `${apiPaths[0] || apiPaths[1]}.${this.fileType}`),
+            filePath: path.join(this.projectApiPath, `${apiPaths[0] || apiPaths[1]}`),
             method: reqMtd,
             params: reqBody.parameters
           }
@@ -275,11 +382,11 @@ export class IntfProvider {
           let completionItem = new CompletionItem(apiName)
           completionItem.kind = CompletionItemKind.Function
           completionItem.insertText = insertText
-          completionItem.documentation = new MarkdownString(`##### ${reqBody.description} \n存放路径：${path.join(this.projectApiPath, `${apiPaths[0] || apiPaths[1]}.${this.fileType}`)}`)
+          completionItem.documentation = new MarkdownString(`##### ${reqBody.description} \n存放路径：${this.getFullPath(path.join(this.projectApiPath, `${apiPaths[0] || apiPaths[1]}.${this.fileType}`))}`)
           completionItem.sortText = '444' + IntfProvider.apiCompletionItem.length
-          // completionItem.command = { command: 'meteor.apiGenerateFileExtra', title: 'meteor.apiGenerateFileExtra', arguments: [{
-          //   apiName
-          // }]}
+          completionItem.command = { command: 'meteor.generateApiFile', title: 'meteor.generateApiFile', arguments: [{
+            apiName
+          }]}
           IntfProvider.apiCompletionItem.push(completionItem)
         }
       }
@@ -414,6 +521,8 @@ class ApiCompletionItemProvider implements CompletionItemProvider {
     const word = getCurrentWord(document, position)
     if (['p', 'g', 'd'].includes(word[0])) {
       return IntfProvider.apiCompletionItem
+    } else {
+      return []
     }
   }
   // resolveCompletionItem?(item: CompletionItem, token: CancellationToken): ProviderResult<CompletionItem> {

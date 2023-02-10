@@ -1,10 +1,12 @@
 export const config = `{
   "activeEnv": "development",
   "rootPath": {
+    "root": "@=src",
     "view": "",
     "component": "",
-    "api": "",
-    "store": ""
+    "api": "src/api",
+    "store": "",
+    "request": "src/utils/request"
   },
   "development": {
     "interface": {

@@ -153,6 +153,7 @@ export class ExplorerProvider {
 
   // 更新配置
   public updateConfig() {
+    console.log('updateConfig')
     let meteorConfig = fs.readFileSync(path.join(this.projectRootPath, this.packageName), 'utf-8')
     if (meteorConfig) {
       try {
@@ -229,6 +230,8 @@ class JsonHoverProvider implements HoverProvider {
     api: '接口根路径',
     component: '组件根路径',
     store: 'store根路径',
+    request: '请求根路径',
+    root: '工程根路径',
   }
   provideHover(document: TextDocument, position: Position): ProviderResult<Hover> {
     const currentWord = getCurrentWordByHover(document, position);
@@ -265,6 +268,9 @@ class JSONCompletionItemProvider implements CompletionItemProvider {
     } else if (location.matches(['rootPath'])) {
       if (!location.isAtPropertyKey) {
         items = [{
+          label: 'root',
+          documentation: '工程根路径'
+        }, {
           label: 'view',
           documentation: '页面根路径'
         }, {
@@ -276,6 +282,9 @@ class JSONCompletionItemProvider implements CompletionItemProvider {
         }, {
           label: "store",
           documentation: 'store根路径'
+        }, {
+          label: "request",
+          documentation: '请求根路径'
         }]
       }
     } else if (location.matches(['development']) || location.matches(['test']) || location.matches(['product'])) {
