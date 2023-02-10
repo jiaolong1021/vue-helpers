@@ -1,5 +1,6 @@
-import { commands, ExtensionContext, Uri, TextDocument, workspace, window, Selection, Position } from 'vscode'
-import { getWorkspaceRoot, open } from './util/util'
+import { commands, ExtensionContext, Uri, TextDocument, workspace, window, Selection, Position, CompletionItem, CompletionItemKind, CompletionItemProvider, CompletionList, 
+  ProviderResult, languages, MarkdownString } from 'vscode'
+import { getWorkspaceRoot, open, setTabSpace, getCurrentWord } from './util/util'
 import * as path from 'path'
 import * as fs from 'fs'
 import { ExplorerProvider } from './explorer';
@@ -27,9 +28,26 @@ export class IntfProvider {
   public version = 2 // 目前支持2.0 3.0
   private fileType: String = 'ts' // 生成文件类型
   private projectRootPath: string = '' // 工程所在位置
-  // private apiCompletionItem: CompletionItem[] = []
+  public static apiCompletionItem: CompletionItem[] = []
   public projectApiPath: string = ''
   public definitions: any = {}
+  private tabSpace: string = ''
+  public paramsKeys: any = {
+    header: 'headers',
+    body: 'data',
+    query: 'params',
+    path: 'path',
+    formData: 'data',
+  }
+  public paramsDefault: any = {
+    string: "''",
+    array: "[]",
+    boolean: "false",
+    integer: "0",
+    ref: "{}",
+    file: "{}",
+    object: "{}",
+  }
 
   constructor(context: ExtensionContext, explerer: ExplorerProvider) {
     this.context = context
@@ -40,6 +58,7 @@ export class IntfProvider {
     if (this.explerer.config.rootPath && this.explerer.config.rootPath.api) {
       this.projectApiPath = this.explerer.config.rootPath.api
     }
+    this.tabSpace = setTabSpace()
   }
 
   public register() {
@@ -73,28 +92,35 @@ export class IntfProvider {
       await window.showTextDocument(document, { preserveFocus: true, selection: new Selection(new Position(x, y), new Position(x, y)) });
     }))
     this.context.subscriptions.push(commands.registerCommand('meteor.interfaceSync', () => {
-      this.getSwaggerUrl()
-      this.url && this.getApi()
+      this.getSwaggerUrl(true)
+      this.url && this.getApi(true)
     }))
     this.context.subscriptions.push(commands.registerCommand('meteor.interfaceVisit', () => {
-      this.getSwaggerUrl()
+      this.getSwaggerUrl(true)
       this.url && open(this.url)
     }))
+    this.context.subscriptions.push(
+      languages.registerCompletionItemProvider(['vue', 'javascript', 'typescript', 'html', 'wxml'], new ApiCompletionItemProvider(), '')
+    )
+    this.getSwaggerUrl(false)
+    this.url && this.getApi(false)
   }
 
   // 获取已配置swagger地址
-  public getSwaggerUrl() {
+  public getSwaggerUrl(showMsg: boolean) {
     let conf = this.explerer.config[this.explerer.activeEnv]
     if (conf && conf.interface && conf.interface.swaggerUrl) {
       this.url = conf.interface.swaggerUrl
     } else {
       this.url = ''
-      window.showInformationMessage(`请先[配置](command:meteor.interfaceSetting)${this.explerer.activeEnvName}环境的接口地址`)
+      if (showMsg) {
+        window.showInformationMessage(`请先[配置](command:meteor.interfaceSetting)${this.explerer.activeEnvName}环境的接口地址`)
+      }
     }
   }
 
   // 获取swaggger接口信息
-  public async getApi() {
+  public async getApi(showMsg: boolean) {
     let url = this.getApiUrl()
     if (!url) {
       return
@@ -104,9 +130,19 @@ export class IntfProvider {
         method: 'get',
         url: url
       })
-      // this.apiCompletionItem = []
-      let inList: string[] = []
-      let typeList: string[] = []
+      IntfProvider.apiCompletionItem = []
+      switch (this.version) {
+        case 2:
+          this.definitions = res.data.definitions
+          break;
+        case 3:
+          if (res.data.components && res.data.components.schemas) {
+            this.definitions = res.data.components.schemas
+          }
+          break;
+        default:
+          break;
+      }
       // 通过接口第一级来定义存放文件
       for (const apiPath in res.data.paths) {
         const req = res.data.paths[apiPath];
@@ -178,20 +214,6 @@ export class IntfProvider {
               }
             }
           }
-          reqBody.parameters && reqBody.parameters.forEach((param: any) => {
-            if (!inList.includes(param.in)) {
-              inList.push(param.in)
-            }
-            let type = ''
-            if (param.schema) {
-              type = param.schema.type
-            } else if (param.type) {
-              type = param.type
-            }
-            if (!typeList.includes(type)) {
-              typeList.push(type)
-            }
-          });
           this.api[apiName] = {
             reqPath: apiPath,
             annotation: annotation,
@@ -200,25 +222,171 @@ export class IntfProvider {
             method: reqMtd,
             params: reqBody.parameters
           }
+
+          // 接口生成文本拼装
+          let insertText = `const res = await ${apiName}({\n`
+          if (reqBody.parameters && reqBody.parameters.length > 0) {
+            // 参数排序
+            let params: any = {}
+            reqBody.parameters.forEach((param: any) => {
+              if (param.in) {
+                if (params[param.in]) {
+                  params[param.in].push(param)
+                } else {
+                  params[param.in] = [param]
+                }
+              }
+            })
+            for (const key in params) {
+              const paramList = params[key]
+               let assemble = this.assembleParameters(key, paramList)
+               if (assemble.position === 'append') {
+                 insertText += assemble.value
+               } else if (assemble.position === 'top') {
+                insertText = assemble.value + insertText
+               }
+            }
+          }
+          if (reqBody.requestBody && reqBody.requestBody.content) {
+            for (const key in reqBody.requestBody.content) {
+              const reqBodyParams = reqBody.requestBody.content[key]
+              switch (key) {
+                case 'multipart/form-data':
+                  if (reqBodyParams.schema && reqBodyParams.schema.properties) {
+                    let assembe = this.assembleParametersInRequestBody(key, reqBodyParams.schema.properties)
+                    insertText = assembe.prepend + insertText
+                    insertText += assembe.append
+                  }
+                  break;
+                case 'application/json':
+                  if (reqBodyParams.schema && reqBodyParams.schema.$ref) {
+                    let assembe = this.assembleParametersInRequestBody(key, reqBodyParams.schema.$ref)
+                    insertText += assembe.append
+                  }
+                  break;
+              
+                default:
+                  break;
+              }
+            }
+          }
+          insertText += '})'
+
+          let completionItem = new CompletionItem(apiName)
+          completionItem.kind = CompletionItemKind.Function
+          completionItem.insertText = insertText
+          completionItem.documentation = new MarkdownString(`##### ${reqBody.description} \n存放路径：${path.join(this.projectApiPath, `${apiPaths[0] || apiPaths[1]}.${this.fileType}`)}`)
+          completionItem.sortText = '444' + IntfProvider.apiCompletionItem.length
+          // completionItem.command = { command: 'meteor.apiGenerateFileExtra', title: 'meteor.apiGenerateFileExtra', arguments: [{
+          //   apiName
+          // }]}
+          IntfProvider.apiCompletionItem.push(completionItem)
         }
       }
-      switch (this.version) {
-        case 2:
-          this.definitions = res.data.definitions
-          break;
-        case 3:
-          if (res.data.components && res.data.components.schemas) {
-            this.definitions = res.data.components.schemas
-          }
-          break;
-        default:
-          break;
+      if (showMsg) {
+        window.showInformationMessage('同步完成')
       }
-      console.log(inList)
-      console.log(typeList)
-      console.log(this.api)
     } catch (error) {
-      console.log(error)
+      if (showMsg) {
+        window.showInformationMessage((error as any).message)
+      }
+    }
+  }
+
+  public assembleParametersInRequestBody(type: string, params: any) {
+    let prepend = ''
+    let append = ''
+    switch (type) {
+      case 'multipart/form-data':
+        for (const key in params) {
+          if (!prepend) {
+            prepend += `const formData = new FormData()\n`
+          }
+          prepend += `formData.append('${key}', {})\n`
+        }
+        append += `${this.tabSpace}data: formData,\n`
+        append += `${this.tabSpace}headers: {\n`
+        append += `${this.tabSpace}${this.tabSpace}"Content-Type": "multipart/form-data",\n`
+        append += `${this.tabSpace}},\n`
+        break;
+      case 'application/json':
+        if (params) {
+          let refs = params.split('/')
+          let ref = refs[refs.length - 1]
+          if (this.definitions[ref] && this.definitions[ref].properties) {
+            for (const key in this.definitions[ref].properties) {
+              const param = this.definitions[ref].properties[key]
+              if (!append) {
+                append += `${this.tabSpace}data: {\n`
+              }
+              append += `${this.tabSpace}${this.tabSpace}${key}: ${this.paramsDefault[param.type] || "''"},\n`
+            }
+          }
+        }
+        break;    
+      default:
+        break;
+    }
+    return {
+      append,
+      prepend
+    }
+  }
+
+  // 拼装请求参数 key: ['header', 'body', 'query', 'path', 'formData']
+  // ['string', 'array', 'boolean', 'integer', 'ref', 'file’, ‘object’]
+  public assembleParameters(key: string, paramList: any []) {
+    let params = ''
+    let position = 'append'
+    let paramsKey = this.paramsKeys[key]
+    if (paramsKey) {
+      paramList.forEach(param => {
+        switch (key) {
+          case 'header':
+          case 'body':
+          case 'query':
+          case 'path':
+            if (!params) {
+              params += `${this.tabSpace}${paramsKey}: {\n`
+            }
+            if (param.schema) {
+              if (param.schema.originalRef) {
+                params += `${this.tabSpace}${this.tabSpace}${param.name}: {},\n`
+              } else if (param.schema.type === 'array') {
+                if (key === 'query') {
+                  // query中数组格式参数需要序列化
+                  let serializer = `${this.tabSpace}paramsSerializer: params => {\n`
+                  serializer += `${this.tabSpace}${this.tabSpace}return qs.stringify(params, { indices: false })\n`
+                  serializer += `${this.tabSpace}},\n`
+                  params = serializer + params
+                }
+                params += `${this.tabSpace}${this.tabSpace}${param.name}: [],\n`
+              } else {
+                params += `${this.tabSpace}${this.tabSpace}${param.name}: '',\n`
+              }
+            } else {
+              params += `${this.tabSpace}${this.tabSpace}${param.name}: ${this.paramsDefault[param.type] || "''"},\n`
+            }
+            break;
+          case 'formData':
+            if (!params) {
+              params += `const formData = new FormData()\n`
+            }
+            params += `formData.append('${param.name}', {})\n`
+            break;
+          default:
+            break;
+        }
+      });
+      if (key === 'formData') {
+        position = 'top'
+      } else {
+        params += `${this.tabSpace}},\n`
+      }
+    }
+    return {
+      value: params,
+      position: position
     }
   }
 
@@ -239,4 +407,16 @@ export class IntfProvider {
     }
     return ''
   }
+}
+
+class ApiCompletionItemProvider implements CompletionItemProvider {
+  provideCompletionItems(document: TextDocument, position: Position): ProviderResult<CompletionItem[] | CompletionList<CompletionItem>> {
+    const word = getCurrentWord(document, position)
+    if (['p', 'g', 'd'].includes(word[0])) {
+      return IntfProvider.apiCompletionItem
+    }
+  }
+  // resolveCompletionItem?(item: CompletionItem, token: CancellationToken): ProviderResult<CompletionItem> {
+  //   throw new Error('Method not implemented.');
+  // }
 }
