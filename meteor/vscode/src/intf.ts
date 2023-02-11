@@ -379,10 +379,18 @@ export class IntfProvider {
           }
           insertText += '})'
 
+          let link = ''
+          let linkSimple = reqBody.tags[0] + '/' + reqBody.operationId
+          if (reqBody.tags && reqBody.tags.length > 0) {
+            link = this.url + '#/' + linkSimple
+          }
           let completionItem = new CompletionItem(apiName)
           completionItem.kind = CompletionItemKind.Function
           completionItem.insertText = insertText
-          completionItem.documentation = new MarkdownString(`##### ${reqBody.description} \n存放路径：${this.getFullPath(path.join(this.projectApiPath, `${apiPaths[0] || apiPaths[1]}.${this.fileType}`))}`)
+          completionItem.documentation = new MarkdownString(`#### ${reqBody.description}
+接口地址: [${linkSimple}](${link})
+
+存放路径: ${this.getFullPath(path.join(this.projectApiPath, `${apiPaths[0] || apiPaths[1]}.${this.fileType}`))}`)
           completionItem.sortText = '444' + IntfProvider.apiCompletionItem.length
           completionItem.command = { command: 'meteor.generateApiFile', title: 'meteor.generateApiFile', arguments: [{
             apiName
