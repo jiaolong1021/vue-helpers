@@ -169,6 +169,10 @@
           "light": "asset/light/publish.svg",
           "dark": "asset/dark/publish.svg"
         }
+      },
+      {
+        "command": "meteor.generatePage",
+        "title": "生成页面"
       }
     ],
     "views": {
@@ -183,6 +187,13 @@
       ]
     },
     "menus": {
+      "explorer/context": [
+        {
+          "command": "meteor.generatePage",
+          "when": "explorerResourceIsFolder",
+          "group": "0_meteor"
+        }
+      ],
       "view/title": [
         {
           "command": "meteor.setting",

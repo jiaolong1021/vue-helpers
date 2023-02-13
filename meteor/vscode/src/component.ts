@@ -1,7 +1,8 @@
 import * as path from 'path';
 import * as fs from 'fs'
 import { ExtensionContext, commands, window, WebviewPanel, ViewColumn, Uri, Disposable, workspace, ConfigurationTarget, TextEditor,
-  QuickPickItem, Position, ProgressLocation } from 'vscode'
+  QuickPickItem, Position, ProgressLocation, languages, CompletionItemProvider, CompletionItemKind, CompletionItem, CompletionList,
+  MarkdownString, ProviderResult, TextDocument } from 'vscode'
 import { open, url, getHtmlForWebview, winRootPathHandle, getWorkspaceRoot, getRelativePath } from './util/util'
 import axios, { AxiosInstance } from 'axios';
 import vuePropsDef from './util/vueProps';
@@ -16,6 +17,7 @@ export class ComponentProvider {
   public pick: string = ''; // 生成页面类型
   public pageName: string = ''; // 页面名称
   public pageTemplateList: any = {};
+  // public pageFileTemplateList: any = {}
   public uri: Uri | undefined;
   public rootPathConfig: any = {};
   public noSelectFolder: Boolean = false;
@@ -34,6 +36,8 @@ export class ComponentProvider {
   public componentRoot: string = 'asset/component';
   public selectedFolder: string = ''
   public fetch: AxiosInstance
+  public suggestions: CompletionItem[] = []
+  public pageSuggestions: CompletionItem[] = []
 
   constructor(context: ExtensionContext) {
     this.context = context
@@ -53,6 +57,47 @@ export class ComponentProvider {
     this.context.subscriptions.push(commands.registerCommand('meteor.componentSync', () => {
       this.sync()
     }))
+    this.context.subscriptions.push(commands.registerCommand('meteor.componentCompetion', (component: any) => {
+      this.offlineGenerateComponent(component.name)
+    }))
+    this.context.subscriptions.push(commands.registerCommand('meteor.generatePage', (uri: Uri) => {
+      this.showPick(uri)
+    }))
+    this.context.subscriptions.push(languages.registerCompletionItemProvider(['vue', 'javascript', 'typescript', 'html', 'wxml', 'scss', 'css', 'wxss'], new ComponentCompletionItemProvider(this), 'm'))
+    this.initConfig()
+  }
+
+  // 打开页面选择
+  public showPick(uri: Uri) {
+    this.init(uri)
+    this.way = this.GenerateWay.PAGE
+
+    const pickItems: QuickPickItem[] = [];
+    this.pages.forEach((item: any) => {
+      pickItems.push({
+        label: item.label,
+        description: item.description
+      });
+    });
+    
+    const pagePick = window.createQuickPick();
+    pagePick.title = '生成页面'
+    pagePick.placeholder = '选择模板'
+    pagePick.items = pickItems
+    pagePick.onDidChangeSelection(selection => {
+      pagePick.hide();
+      // 打开工程才能继续
+      if (workspace.workspaceFolders && selection[0] && selection[0].label) {
+        this.pick = selection[0].label;
+        this.showPageNamePick(selection[0].description || '');
+      } else {
+        if (!workspace.workspaceFolders) {
+          window.showInformationMessage('请先打开工程');
+        }
+      }
+		});
+    pagePick.onDidHide(() => pagePick.dispose());
+		pagePick.show();
   }
 
   // 打开视图
@@ -87,7 +132,6 @@ export class ComponentProvider {
     }, null, this._disposables)
     // 处理来自webview的信息
     this.activeView.webview.onDidReceiveMessage((message) => {
-      console.log(message.command)
       switch (message.command) {
         case 'getPageConfig':
           this.getPageConfig();
@@ -195,12 +239,10 @@ export class ComponentProvider {
       if (this.selectedFolder) {
         this.init(Uri.file(this.selectedFolder));
         this.way = this.GenerateWay.PAGE;
-        this.setPage();
-        this.getQuickPickItems()
         this.pick = page.description.name;
         this.pageName = page.description.name;
         this.pageTemplateList = obj
-        this.showGenerateNameInput(page.description || '');
+        this.showPageNamePick(page.description || '');
       } else {
         window.showInformationMessage('请选择生成页面目录！')
       }
@@ -210,7 +252,7 @@ export class ComponentProvider {
   /**
    * 显示输入名称弹框
    */
-  public async showGenerateNameInput(category: string) {
+  public async showPageNamePick(category: string) {
     let placeholder = '前缀 - 页面生成规则为【前缀+文件名】';
     if (category === '(miniapp)') {
       placeholder = '页面名称';
@@ -224,32 +266,21 @@ export class ComponentProvider {
     }
   }
 
-  public getQuickPickItems() {
-    const items: QuickPickItem[] = [];
-    this.pages.forEach((item: any) => {
-      items.push({
-        label: item.label,
-        description: item.description
-      });
-    });
-    return items;
-  }
-
-  public setPage() {
+  public setPage(root: string, file: string, msg: string, isGenerateSugguestion: boolean) {
     // 插件配置信息
-    let configPath = path.join(this.context.extensionUri.path, this.templateRoot, 'page.json');
+    let configPath = path.join(this.context.extensionUri.path, root, file);
     try {
       configPath = winRootPathHandle(configPath);
       let config: string = fs.readFileSync(configPath, 'utf-8');
-      this.setPageByConfig(config);
+      this.setPageByConfig(config, isGenerateSugguestion);
     } catch (error) {
-      window.showWarningMessage('插件中page.json文件出错！');
+      window.showWarningMessage(msg);
     }
   }
 
   // 通过配置设置页面参数
-  public setPageByConfig(config: string) {
-    if (config) {``
+  public setPageByConfig(config: string, isGenerateSugguestion: boolean) {
+    if (config) {
       let conf = JSON.parse(config);
       let pages = [];
       for (const key in conf) {
@@ -259,19 +290,21 @@ export class ComponentProvider {
         });
       }
       this.pageTemplateList = Object.assign(this.pageTemplateList, conf);
-      this.pages = this.pages.concat(pages);
+      if (isGenerateSugguestion) {
+        this.setSuggestions()
+      } else {
+        this.pages = this.pages.concat(pages);
+      }
     }
   }
 
-  public async init(uri: Uri) {
+  public async init(uri?: Uri) {
     if (uri) {
       this.uri = uri;
     } else if (workspace.workspaceFolders) {
       this.uri = workspace.workspaceFolders[0].uri;
       this.noSelectFolder = true;
     }
-    this.pageTemplateList = {};
-    this.pages = [];
     this.setProjectRoot();
   }
 
@@ -642,23 +675,25 @@ export class ComponentProvider {
         });
         let insertList: any[] = [];
         if (symbols && symbols.length > 0) {
-          // let doc = symbols[0];
           let defaultLine = 0;
           doc.forEach((oneLevelItem: any) => {
+            let endPosition: any = oneLevelItem.location.range.end
+            let startPosition: any = oneLevelItem.location.range.start
             if (oneLevelItem.name === 'template' && names.includes('template')) {
               names.splice(names.indexOf('template'), 1);
               insertList.push({
-                position: editor?.selection.active || oneLevelItem.location.range._end,
+                position: editor?.selection.active || new Position(endPosition.c, endPosition.e),
                 code: templateObj['template']
               });
             } else if (oneLevelItem.name.startsWith('script')) {
               if (names.includes('import')) {
                 names.splice(names.indexOf('import'), 1);
-                let line = oneLevelItem.location.range._start._line
+                let line = startPosition.c
+                let text = editor?.document.lineAt(line).text || ''
                 insertList.push({
                   position: {
-                    _line: line,
-                    _character: editor?.document.lineAt(line).text.length
+                    line: line,
+                    character: text.length
                   },
                   code: '\n' + templateObj['import']
                 });
@@ -666,25 +701,26 @@ export class ComponentProvider {
               if (category === 'vue2') {
                 oneLevelItem.children.forEach((scriptChild: any) => {
                   if (scriptChild.name === 'default') {
-                    defaultLine = scriptChild.location.range._start._line;
+                    defaultLine = scriptChild.location.range.start.c;
                     // vue属性
                     scriptChild.children.forEach((vueProp: any) => {
                       if (names.includes(vueProp.name)) {
                         names.splice(names.indexOf(vueProp.name), 1);
-                        let line = (vueProp.kind === 5 && vueProp.name === 'data') ? vueProp.location.range._end._line - 2: vueProp.location.range._end._line - 1
+                        let line = (vueProp.kind === 5 && vueProp.name === 'data') ? vueProp.location.range.end.c - 2: vueProp.location.range.end.c - 1
                         let code = '';
                         // code存在才处理
                         if (templateObj[vueProp.name]) {
-                          if (vueProp.children.length > 0) {
+                          if (vueProp.children && vueProp.children.length > 0) {
                             code += ',\n';
                           } else {
                             code += '\n'
                           }
                           code += templateObj[vueProp.name];
+                          let text = editor?.document.lineAt(line).text || ''
                           insertList.push({
                             position: {
-                              _line: line,
-                              _character: editor?.document.lineAt(line).text.length
+                              line: line,
+                              character: text.length
                             },
                             code: code
                           });
@@ -696,12 +732,13 @@ export class ComponentProvider {
               }
             } else if (oneLevelItem.name.startsWith('style') && names.includes('style')) {
               names.splice(names.indexOf('style'), 1);
-              let line = oneLevelItem.location.range._end._line - 1;
+              let line = endPosition.c - 1;
+              let text = editor?.document.lineAt(line).text || ''
               if (templateObj['style']) {
                 insertList.push({
                   position: {
-                    _line: line,
-                    _character: editor?.document.lineAt(line).text.length
+                    line: line,
+                    character: text.length
                   },
                   code: '\n' + templateObj['style']
                 });
@@ -711,10 +748,11 @@ export class ComponentProvider {
           if (category === 'vue2') {
             names.forEach((name: string) => {
               if (vuePropsDef.vue[name]) {
+                let text = editor?.document.lineAt(defaultLine).text || ''
                 insertList.push({
                   position: {
-                    _line: defaultLine,
-                    _character: editor?.document.lineAt(defaultLine).text.length
+                    line: defaultLine,
+                    character: text.length
                   },
                   code: '\n' + vuePropsDef.vue[name].replace(/##/gi, templateObj[name])
                 });
@@ -723,7 +761,7 @@ export class ComponentProvider {
           }
           await editor?.edit((editBuilder: any) => {
             insertList.forEach((insert) => {
-              editBuilder.insert(new Position(insert.position._line, insert.position._character), insert.code);
+              editBuilder.insert(new Position(insert.position.line, insert.position.character), insert.code);
             });
           });
         } else if (templateObj['template'] && editor?.selection.active) {
@@ -735,9 +773,6 @@ export class ComponentProvider {
         if (this.activeTextEditor) {
           // 聚焦进入的页面
           window.showTextDocument(this.activeTextEditor?.document, this.activeTextEditor.viewColumn)
-          setTimeout(() => {
-            commands.executeCommand('eslint.executeAutofix');
-          }, 100);
         }
       })
     }
@@ -1161,6 +1196,7 @@ ${space}},\n`;
               message: msg
             });
           }
+          this.initConfig()
           retPromise()
           window.showInformationMessage('同步成功')
         }).catch(() => {
@@ -1172,4 +1208,73 @@ ${space}},\n`;
       });
     });
   }
+
+  public initConfig() {
+    this.setPage(this.templateRoot, 'page.json', '插件中page.json文件出错！', false)
+    this.setPage(this.componentRoot, 'component.json', '目前还没有内置组件', true)
+  }
+
+  public offlineGenerateComponent(name: string) {
+    this.activeTextEditor = window.activeTextEditor
+    if (!this.activeTextEditor) {
+      return
+    }
+    let uriPath = this.activeTextEditor.document.uri.path
+    if (uriPath.includes('.')) {
+      uriPath = uriPath.replace(/[\/|\\]\w*.\w*$/gi, '')
+    }
+    this.init(Uri.file(uriPath))
+    this.way = this.GenerateWay.COMPONENT
+    this.pageName = name
+    this.pick = name
+    this.generate()
+  }
+
+  public setSuggestions() {
+    for (const key in this.pageTemplateList) {
+      const component = this.pageTemplateList[key]
+      let documentation = ''
+      if (component.remark) {
+        documentation += `##### ${component.remark} \n  `
+      }
+      if (component.avatar) {
+        documentation += `![meteor](${component.avatar})`
+      }
+      let completionItem = new CompletionItem(key)
+      completionItem.label = key
+      completionItem.sortText = `000${key}`
+      completionItem.insertText = ''
+      completionItem.kind = CompletionItemKind.Snippet
+      completionItem.detail = 'meteor'
+      completionItem.documentation = new MarkdownString(documentation)
+      completionItem.command = { command: 'meteor.componentCompetion', title: 'completions', arguments: [{
+        name: key
+      }] }
+      if (component.type === '1') {
+        this.pageSuggestions.push(completionItem)
+      } else {
+        this.suggestions.push(completionItem)
+      }
+    }
+  }
+}
+
+class ComponentCompletionItemProvider implements CompletionItemProvider {
+  private componentProvider: ComponentProvider
+
+  constructor(componentProvider: ComponentProvider) {
+    this.componentProvider = componentProvider
+  }
+
+  provideCompletionItems(document: TextDocument, position: Position): ProviderResult<CompletionItem[] | CompletionList<CompletionItem>> {
+    // 当最前面为m时，不提示
+    if (document.lineAt(position.line).text[position.character - 1] !== 'm') {
+      return []
+    }
+    return this.componentProvider.suggestions
+  }
+  // resolveCompletionItem?(item: CompletionItem, token: CancellationToken): ProviderResult<CompletionItem> {
+  //   throw new Error('Method not implemented.');
+  // }
+  
 }

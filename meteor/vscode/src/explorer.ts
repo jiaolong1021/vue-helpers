@@ -153,7 +153,6 @@ export class ExplorerProvider {
 
   // 更新配置
   public updateConfig() {
-    console.log('updateConfig')
     let meteorConfig = fs.readFileSync(path.join(this.projectRootPath, this.packageName), 'utf-8')
     if (meteorConfig) {
       try {
