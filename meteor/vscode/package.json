@@ -42,6 +42,10 @@
   "contributes": {
     "commands": [
       {
+        "command": "meteor.encrypt",
+        "title": "加密"
+      },
+      {
         "command": "meteor.newProject",
         "title": "新建工程"
       },
@@ -306,6 +310,7 @@
     "@types/vscode": "^1.74.0",
     "axios": "^0.21.1",
     "camelcase": "^7.0.1",
+    "crypto-js": "^4.1.1",
     "esbuild": "0.15.18",
     "esbuild-plugin-copy": "^2.0.2",
     "execa": "^6.1.0",

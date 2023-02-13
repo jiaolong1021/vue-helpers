@@ -1,4 +1,4 @@
-import { commands, ExtensionContext, Uri, TextDocument, workspace, window, Selection, Position, CompletionItem, CompletionItemKind, CompletionItemProvider, CompletionList, 
+import { commands, ExtensionContext, TextDocument, window, Position, CompletionItem, CompletionItemKind, CompletionItemProvider, CompletionList, 
   ProviderResult, languages, MarkdownString } from 'vscode'
 import { getWorkspaceRoot, open, setTabSpace, getCurrentWord } from './util/util'
 import * as path from 'path'
@@ -82,33 +82,7 @@ export class IntfProvider {
 
   public register() {
     this.context.subscriptions.push(commands.registerCommand('meteor.interfaceSetting', async () => {
-      let meteorJsonPath = path.join(this.projectRootPath, 'meteor.json')
-      const config = fs.readFileSync(meteorJsonPath, 'utf-8')
-      let configLines = config.split('\n')
-      let env = ''
-      if (config) {
-        env = JSON.parse(config).activeEnv
-      }
-      let envReg = new RegExp(`.*\\"${env}\\"\\s?:.*`, 'gi')
-      let inEnv = false
-      let x = 0, y = 0
-      for (let i = 0; i < configLines.length; i++) {
-        const line = configLines[i];
-        if (envReg.test(line)) {
-          inEnv = true
-          continue
-        }
-        if (inEnv) {
-          if (/.*\"swaggerUrl\"\s?:.*/gi.test(line)) {
-            x = i
-            y = line.length - 2
-            break
-          }
-        }
-      }
-      let uri = Uri.file(meteorJsonPath)
-      const document: TextDocument = await workspace.openTextDocument(uri)
-      await window.showTextDocument(document, { preserveFocus: true, selection: new Selection(new Position(x, y), new Position(x, y)) });
+      this.explerer.openConfigInKey('swaggerUrl')
     }))
     this.context.subscriptions.push(commands.registerCommand('meteor.interfaceSync', () => {
       this.setConfig()

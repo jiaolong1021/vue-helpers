@@ -3,6 +3,7 @@ import { ProjectProvider } from './project'
 import { ExplorerProvider } from './explorer'
 import { ComponentProvider } from './component'
 import { IntfProvider } from './intf'
+import { PkgProvider } from './pkg';
 
 export function activate(context: vscode.ExtensionContext) {
   // 工程
@@ -18,4 +19,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const intf = new IntfProvider(context, explorer)
   intf.register()
+
+  const pkg = new PkgProvider(context, explorer)
+  pkg.register()
 }

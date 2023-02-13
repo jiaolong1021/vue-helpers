@@ -15,12 +15,12 @@ export const config = `{
     "package": {
       "jenkinsUrl": "http://jenkins.cs2025.com",
       "jenkinsUsername": "admin",
-      "jenkinsPassword": "admin"
+      "jenkinsPassword": "U2FsdGVkX19cxXE+vCfFmB1xEGJhDNwEEn1I+j5+XPs="
     },
     "deploy": {
       "cloudUrl": "http://cloud.cs2025.com",
       "cloudUsername": "admin",
-      "cloudPassword": "zlst8888"
+      "cloudPassword": "U2FsdGVkX19TyGejvK4KWeJb1KahUGivElENkpDONhM="
     }
   },
   "test": {
@@ -30,12 +30,12 @@ export const config = `{
     "package": {
       "jenkinsUrl": "http://jenkins.cs2025.com",
       "jenkinsUsername": "admin",
-      "jenkinsPassword": "admin"
+      "jenkinsPassword": "U2FsdGVkX19cxXE+vCfFmB1xEGJhDNwEEn1I+j5+XPs="
     },
     "deploy": {
       "cloudUrl": "http://cloud.cs2025.com",
       "cloudUsername": "admin",
-      "cloudPassword": "zlst8888"
+      "cloudPassword": "U2FsdGVkX19TyGejvK4KWeJb1KahUGivElENkpDONhM="
     }
   },
   "product": {
@@ -45,12 +45,12 @@ export const config = `{
     "package": {
       "jenkinsUrl": "http://jenkins.cs2025.com",
       "jenkinsUsername": "admin",
-      "jenkinsPassword": "admin"
+      "jenkinsPassword": "U2FsdGVkX19cxXE+vCfFmB1xEGJhDNwEEn1I+j5+XPs="
     },
     "deploy": {
       "cloudUrl": "http://cloud.cs2025.com",
       "cloudUsername": "admin",
-      "cloudPassword": "zlst8888"
+      "cloudPassword": "U2FsdGVkX19TyGejvK4KWeJb1KahUGivElENkpDONhM="
     }
   }
 }`

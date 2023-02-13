@@ -1,6 +1,6 @@
 import { Event, ExtensionContext, ProviderResult, TreeDataProvider, TreeItem, window, TreeItemCollapsibleState, ThemeIcon, TreeView, commands, 
-  languages, CompletionItemProvider, CompletionItem, CompletionList, Position, TextDocument, CompletionItemKind, HoverProvider, Hover, Uri, workspace
-  } from 'vscode'
+  languages, CompletionItemProvider, CompletionItem, CompletionList, Position, TextDocument, CompletionItemKind, HoverProvider, Hover, Uri, workspace,
+  Selection } from 'vscode'
 import { getWorkspaceRoot, getCurrentWordByHover, open, url } from './util/util'
 import * as path from 'path'
 import * as fs from 'fs'
@@ -83,6 +83,7 @@ export class ExplorerProvider {
   public activeEnvName: string = '开发'
   public config: any
   public fetch: AxiosInstance
+  public open
 
   constructor(context: ExtensionContext) {
     this.context = context
@@ -90,6 +91,7 @@ export class ExplorerProvider {
       baseURL: url.base,
       withCredentials: false
     })
+    this.open = open
   }
   
   public register() {
@@ -160,6 +162,37 @@ export class ExplorerProvider {
       } catch (error) {
       }
     }
+  }
+  
+  // 打开配置文件
+  public async openConfigInKey(key: string) {
+    let meteorJsonPath = path.join(this.projectRootPath, 'meteor.json')
+    const config = fs.readFileSync(meteorJsonPath, 'utf-8')
+    let configLines = config.split('\n')
+    let env = ''
+    if (config) {
+      env = JSON.parse(config).activeEnv
+    }
+    let envReg = new RegExp(`.*\\"${env}\\"\\s?:.*`, 'gi')
+    let inEnv = false
+    let x = 0, y = 0
+    for (let i = 0; i < configLines.length; i++) {
+      const line = configLines[i];
+      if (envReg.test(line)) {
+        inEnv = true
+        continue
+      }
+      if (inEnv) {
+        if (new RegExp(`.*\\"${key}\\"\\s?:.*`, 'gi').test(line)) {
+          x = i
+          y = line.length - 2
+          break
+        }
+      }
+    }
+    let uri = Uri.file(meteorJsonPath)
+    const document: TextDocument = await workspace.openTextDocument(uri)
+    await window.showTextDocument(document, { preserveFocus: true, selection: new Selection(new Position(x, y), new Position(x, y)) });
   }
 
   // meteor.json hover, item provider
