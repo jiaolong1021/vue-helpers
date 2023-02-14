@@ -8,6 +8,7 @@ import { config } from './util/constant'
 import { getLocation } from 'jsonc-parser'
 import { execa } from 'execa'
 import axios, { AxiosInstance } from 'axios';
+var CryptoJS = require("crypto-js");
 
 // 仓库
 class LibraryTreeItem extends TreeItem {
@@ -78,6 +79,7 @@ export class ExplorerProvider {
   private context: ExtensionContext
   public view: TreeView<TreeItem> | undefined
   public projectRootPath: string = ''
+  public project: string = ''
   private packageName: string = 'meteor.json'
   public activeEnv: string = 'development'
   public activeEnvName: string = '开发'
@@ -141,6 +143,14 @@ export class ExplorerProvider {
       }
     }))
     this.watcherProvider()
+  }
+
+  public encrypt(psd: string) {
+    return CryptoJS.AES.encrypt(psd, 'meteor').toString()
+  }
+
+  public decrypt(psd: string) {
+    return CryptoJS.AES.decrypt(psd, 'meteor').toString(CryptoJS.enc.Utf8)
   }
 
   // 配置文件监听器
@@ -215,6 +225,13 @@ export class ExplorerProvider {
 
   public generateMeteorJson() {
     this.projectRootPath = getWorkspaceRoot('')
+    const paths = this.projectRootPath.split('/')
+    let project = ''
+    if (paths.length > 0) {
+      project = paths[paths.length - 1]
+    }
+    // docker仓库不允许大写
+    this.project = project.toLowerCase()
     let meteorJsonPath = path.join(this.projectRootPath, this.packageName)
     let gitignorePath = path.join(this.projectRootPath, '.gitignore')
     if (fs.existsSync(meteorJsonPath)) {
@@ -254,6 +271,8 @@ class JsonHoverProvider implements HoverProvider {
     jenkinsUrl: 'jenkins访问地址',
     jenkinsUsername: 'jenkins登录账号',
     jenkinsPassword: 'jenkins登录密码',
+    jenkinsView: 'jenkins放置视图',
+    jenkinsBaseProject: 'jenkins复制基本工程',
     cloudUrl: '容器云访问地址',
     cloudUsername: '容器云登录账号',
     cloudPassword: '容器云登录密码',
@@ -338,6 +357,12 @@ class JSONCompletionItemProvider implements CompletionItemProvider {
           }, {
             label: 'jenkinsPassword',
             documentation: 'jenkins登录密码'
+          }, {
+            label: 'jenkinsBaseProject',
+            documentation: 'jenkins复制基本工程'
+          }, {
+            label: 'jenkinsView',
+            documentation: 'jenkins放置视图'
           }]
         }
       } else if (location.path.includes('deploy')) {

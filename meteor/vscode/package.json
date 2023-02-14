@@ -121,6 +121,14 @@
         }
       },
       {
+        "command": "meteor.packageVersion",
+        "title": "获取jenkins最新版本",
+        "icon": {
+          "light": "asset/light/ok.svg",
+          "dark": "asset/dark/ok.svg"
+        }
+      },
+      {
         "command": "meteor.deploySetting",
         "title": "设置",
         "icon": "$(settings-gear)"
@@ -269,6 +277,11 @@
           "when": "view == meteor && viewItem == packageTreeItem"
         },
         {
+          "command": "meteor.packageVersion",
+          "group": "inline",
+          "when": "view == meteor && viewItem == packageTreeItem"
+        },
+        {
           "command": "meteor.deploySetting",
           "group": "inline",
           "when": "view == meteor && viewItem == deployTreeItem"
@@ -302,6 +315,10 @@
         "meteor.user": {
           "type": "string",
           "default": ""
+        },
+        "meteor.chromePath": {
+          "type": "string",
+          "default": ""
         }
       }
     }
@@ -314,8 +331,11 @@
     "esbuild": "0.15.18",
     "esbuild-plugin-copy": "^2.0.2",
     "execa": "^6.1.0",
+    "find-chrome-bin": "^1.0.2",
     "jsonc-parser": "^3.2.0",
+    "mitt": "^3.0.0",
     "opn": "^6.0.0",
+    "puppeteer-core": "^19.7.0",
     "vsce": "latest"
   },
   "gitHead": "b1cc40df44b9cd73ba96d8b7f0369cc3ce690c45"
