@@ -5,6 +5,7 @@ import { ComponentProvider } from './component'
 import { IntfProvider } from './intf'
 import { PkgProvider } from './pkg';
 import { DeployProvider } from './deploy';
+import Assist from './assist';
 
 export function activate(context: vscode.ExtensionContext) {
   // 工程
@@ -26,4 +27,8 @@ export function activate(context: vscode.ExtensionContext) {
 
   const deploy = new DeployProvider(context, explorer, pkg)
   deploy.register()
+
+  const assist = new Assist(context, explorer)
+  assist.register()
+
 }

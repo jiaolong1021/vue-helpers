@@ -1,6 +1,6 @@
 import { Event, ExtensionContext, ProviderResult, TreeDataProvider, TreeItem, window, TreeItemCollapsibleState, ThemeIcon, TreeView, commands, 
   languages, CompletionItemProvider, CompletionItem, CompletionList, Position, TextDocument, CompletionItemKind, HoverProvider, Hover, Uri, workspace,
-  Selection } from 'vscode'
+  Selection, Range, TextEditorRevealType } from 'vscode'
 import { getWorkspaceRoot, getCurrentWordByHover, open, url } from './util/util'
 import * as path from 'path'
 import * as fs from 'fs'
@@ -209,6 +209,9 @@ export class ExplorerProvider {
     let uri = Uri.file(meteorJsonPath)
     const document: TextDocument = await workspace.openTextDocument(uri)
     await window.showTextDocument(document, { preserveFocus: true, selection: new Selection(new Position(x, y), new Position(x, y)) });
+    if (window.activeTextEditor) {
+      window.activeTextEditor.revealRange(new Range(new Position(x, y), new Position(x, y)), TextEditorRevealType.Default);
+    }
   }
 
   // meteor.json hover, item provider

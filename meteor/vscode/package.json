@@ -42,6 +42,22 @@
   "contributes": {
     "commands": [
       {
+        "command": "meteor.searchFile",
+        "title": "meteor: searchFile"
+      },
+      {
+        "command": "meteor.backspace",
+        "title": "meteor: backspace"
+      },
+      {
+        "command": "meteor.blockSelect",
+        "title": "meteor: blockSelect"
+      },
+      {
+        "command": "meteor.funcEnhance",
+        "title": "meteor: funcEnhance"
+      },
+      {
         "command": "meteor.encrypt",
         "title": "加密"
       },
@@ -351,7 +367,24 @@
           "default": ""
         }
       }
-    }
+    },
+    "keybindings": [
+      {
+        "key": "alt+f",
+        "command": "meteor.searchFile",
+        "when": "editorTextFocus"
+      },
+      {
+        "key": "alt+x",
+        "command": "meteor.blockSelect",
+        "when": "editorTextFocus"
+      },
+      {
+        "key": "shift+alt+enter",
+        "command": "meteor.funcEnhance",
+        "when": "editorTextFocus"
+      }
+    ]
   },
   "devDependencies": {
     "@types/uuid": "^9.0.0",
@@ -363,6 +396,7 @@
     "esbuild-plugin-copy": "^2.0.2",
     "execa": "^6.1.0",
     "find-chrome-bin": "^1.0.2",
+    "glob": "^8.1.0",
     "jsonc-parser": "^3.2.0",
     "mitt": "^3.0.0",
     "opn": "^6.0.0",
