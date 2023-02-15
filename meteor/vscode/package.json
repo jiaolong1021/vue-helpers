@@ -135,7 +135,7 @@
       },
       {
         "command": "meteor.deploySync",
-        "title": "环境、服务组信息同步",
+        "title": "环境信息同步",
         "icon": "$(search-refresh)"
       },
       {

@@ -253,6 +253,7 @@ export class ExplorerProvider {
           }
           this.setEnv(meteorConfig.activeEnv, nameKey[meteorConfig.activeEnv] || '')
         }
+        this.setConfDir(path.join(this.projectRootPath, meteorConfig.rootPath.config))
       }
     } else {
       fs.writeFileSync(meteorJsonPath, config)
@@ -260,6 +261,25 @@ export class ExplorerProvider {
       if (fs.existsSync(gitignorePath)) {
         fs.appendFileSync(gitignorePath, '\n' + this.packageName)
       }
+      this.setConfDir(path.join(this.projectRootPath, 'conf'))
+    }
+  }
+
+  public setConfDir(confPath: string) {
+    if (!fs.existsSync(confPath)) {
+      fs.mkdirSync(confPath)
+    }
+    let devPath = path.join(confPath, 'development')
+    let testPath = path.join(confPath, 'test')
+    let prdPath = path.join(confPath, 'product')
+    if (!fs.existsSync(devPath)) {
+      fs.mkdirSync(devPath)
+    }
+    if (!fs.existsSync(testPath)) {
+      fs.mkdirSync(testPath)
+    }
+    if (!fs.existsSync(prdPath)) {
+      fs.mkdirSync(prdPath)
     }
   }
 

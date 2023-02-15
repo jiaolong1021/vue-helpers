@@ -65,6 +65,109 @@ export class DeployProvider {
       this.getConfig()
       this.visitWeb()
     }))
+
+    this.context.subscriptions.push(commands.registerCommand('meteor.deployDownload', () => {
+      this.getConfig()
+      this.updateConfig('download')
+    }))
+    this.context.subscriptions.push(commands.registerCommand('meteor.deployUpload', () => {
+      this.getConfig()
+      this.updateConfig('upload')
+    }))
+  }
+
+  public async updateConfig(opt: string) {
+    await this.login()
+    if (!this.config.cloudUrl) {
+      return window.showInformationMessage('请输入容器云地址')
+    }
+    if (!this.config.cloudUsername) {
+      return window.showInformationMessage('请输入容器云账号')
+    }
+    if (!this.config.cloudPassword) {
+      return window.showInformationMessage('请输入容器云密码')
+    }
+    if (!this.config.cloudeEnv) {
+      return window.showInformationMessage('请输入容器云环境')
+    }
+    let envId = ''
+    let envs = this.config.cloudeEnv.split(',')
+    let project = this.explorer.project
+    let configRootPath = path.join(this.explorer.projectRootPath, this.explorer.config.rootPath.config, this.explorer.activeEnv)
+    if (envs.length === 2) {
+      envId = envs[1]
+    } else {
+      envId = envs[0]
+    }
+
+    const configRes = await this.explorer.fetch({
+      url: `${this.config.cloudUrl}/api/environments/${envId}/configmaps`,
+      headers: {
+        token: this.token
+      }
+    })
+    let conf: any = null
+    configRes.data.data.forEach((config: any) => {
+      if (config.id === project) {
+        conf = config
+      }
+    })
+    if (opt === 'download') {
+      if (conf) {
+        for (const key in conf.data) {
+          fs.writeFileSync(path.join(configRootPath, key), conf.data[key])
+        }
+        window.showInformationMessage('下载配置集成功')
+      }
+    } else {
+      let configData = {
+        id: project,
+        description: '',
+        environmentId: envId,
+        data: {} as any
+      }
+      const configFiles = fs.readdirSync(configRootPath)
+      if (configFiles) {
+        configFiles.forEach((fileName: string) => {
+          configData.data[fileName] = fs.readFileSync(path.join(configRootPath, fileName), 'utf-8')
+        });
+      }
+      if (conf) {
+        // 修改
+        conf.data = configData.data
+        await this.explorer.fetch({
+          url: `${this.config.cloudUrl}/api/environments/${envId}/configmaps/${project}`,
+          method: 'put',
+          data: conf,
+          headers: {
+            token: this.token
+          }
+        })
+      } else {
+        // 新增
+        await this.explorer.fetch({
+          url: `${this.config.cloudUrl}/api/environments/${envId}/configmaps`,
+          method: 'post',
+          data: configData,
+          headers: {
+            token: this.token
+          }
+        })
+      }
+      let groupId = ''
+      let groups = this.config.cloudeGroup.split(',')
+      if (groups.length === 2) {
+        groupId = groups[1]
+      }
+      this.explorer.fetch({
+        url: `${this.config.cloudUrl}/api/environments/${envId}/groups/${groupId}/services/${project}/reboot?deploymentName=${project}`,
+        method: 'DELETE',
+        headers: {
+          token: this.token
+        }
+      })
+      window.showInformationMessage('配置集更新成功, [立即访问](command:meteor.deployWebVisit)')
+    }
   }
 
   public async visitWeb() {
@@ -236,7 +339,7 @@ export class DeployProvider {
             token: this.token
           }
         })
-        window.showInformationMessage('服务镜像已为最新，本次重启了服务。[立即访问](command:meteor.deployVisit)')
+        window.showInformationMessage('服务镜像已为最新，本次重启了服务。[立即访问](command:meteor.deployWebVisit)')
       } else {
         serviceRes.data.data.image = pkgDocker
         this.explorer.fetch({
@@ -247,7 +350,7 @@ export class DeployProvider {
             token: this.token
           }
         })
-        window.showInformationMessage('服务升级成功！[立即访问](command:meteor.deployVisit)')
+        window.showInformationMessage('服务升级成功！[立即访问](command:meteor.deployWebVisit)')
       }
     } else {
       // 服务不存在, 添加访问权
@@ -334,7 +437,7 @@ export class DeployProvider {
           groupId: groupId
         }
       })
-      window.showInformationMessage('新建服务：' + project + '成功. [立即访问](command:meteor.deployVisit)')
+      window.showInformationMessage('新建服务：' + project + '成功. [立即访问](command:meteor.deployWebVisit)')
     }
 
   }
