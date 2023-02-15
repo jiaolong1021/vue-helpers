@@ -34,6 +34,7 @@ importers:
       mitt: ^3.0.0
       opn: ^6.0.0
       puppeteer-core: ^19.7.0
+      uuid: ^9.0.0
       vsce: latest
     devDependencies:
       '@types/vscode': registry.npmmirror.com/@types/vscode/1.74.0
@@ -48,6 +49,7 @@ importers:
       mitt: registry.npmmirror.com/mitt/3.0.0
       opn: registry.npmmirror.com/opn/6.0.0
       puppeteer-core: registry.npmmirror.com/puppeteer-core/19.7.0_mitt@3.0.0
+      uuid: registry.npmmirror.com/uuid/9.0.0
       vsce: registry.npmmirror.com/vsce/2.15.0
 
   meteor/web:
@@ -6517,8 +6519,6 @@ packages:
     name: uuid
     version: 9.0.0
     hasBin: true
-    dev: false
-    optional: true
 
   registry.npmmirror.com/validate-npm-package-license/3.0.4:
     resolution: {integrity: sha512-DpKm2Ui/xN7/HQKCtpZxoRWBhZ9Z0kqtygG8XCgNQ8ZlDnxuQmWhj566j8fN4Cu3/JmbhsDo7fcAJq4s9h27Ew==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npmmirror.com/validate-npm-package-license/-/validate-npm-package-license-3.0.4.tgz}

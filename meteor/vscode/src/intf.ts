@@ -21,7 +21,7 @@ interface Api {
 
 export class IntfProvider {
   public context: ExtensionContext;
-  public explerer: ExplorerProvider
+  public explorer: ExplorerProvider
   // 获取到的swagger数据信息
   public api: Api = {}
   public url: string = ''
@@ -52,9 +52,9 @@ export class IntfProvider {
     object: "{}",
   }
 
-  constructor(context: ExtensionContext, explerer: ExplorerProvider) {
+  constructor(context: ExtensionContext, explorer: ExplorerProvider) {
     this.context = context
-    this.explerer = explerer
+    this.explorer = explorer
     this.projectRootPath = getWorkspaceRoot('')
     this.fileType = fs.existsSync(path.join(this.projectRootPath, 'tsconfig.json')) ? 'ts' : 'js'
     this.projectApiPath = 'api'
@@ -63,15 +63,15 @@ export class IntfProvider {
   }
 
   public setConfig() {
-    if (this.explerer.config.rootPath) {
-      if (this.explerer.config.rootPath.api) {
-        this.projectApiPath = this.explerer.config.rootPath.api
+    if (this.explorer.config.rootPath) {
+      if (this.explorer.config.rootPath.api) {
+        this.projectApiPath = this.explorer.config.rootPath.api
       }
-      if (this.explerer.config.rootPath.request) {
-        this.requestPath = this.explerer.config.rootPath.request
+      if (this.explorer.config.rootPath.request) {
+        this.requestPath = this.explorer.config.rootPath.request
       }
-      if (this.explerer.config.rootPath.root) {
-        let prefix = this.explerer.config.rootPath.root
+      if (this.explorer.config.rootPath.root) {
+        let prefix = this.explorer.config.rootPath.root
         if (prefix) {
           this.rootPrefix = prefix.split('=')[0]
           this.rootReplace = prefix.split('=')[1]
@@ -82,7 +82,7 @@ export class IntfProvider {
 
   public register() {
     this.context.subscriptions.push(commands.registerCommand('meteor.interfaceSetting', async () => {
-      this.explerer.openConfigInKey('swaggerUrl')
+      this.explorer.openConfigInKey('swaggerUrl')
     }))
     this.context.subscriptions.push(commands.registerCommand('meteor.interfaceSync', () => {
       this.setConfig()
@@ -189,13 +189,13 @@ export class IntfProvider {
 
   // 获取已配置swagger地址
   public getSwaggerUrl(showMsg: boolean) {
-    let conf = this.explerer.config[this.explerer.activeEnv]
+    let conf = this.explorer.config[this.explorer.activeEnv]
     if (conf && conf.interface && conf.interface.swaggerUrl) {
       this.url = conf.interface.swaggerUrl
     } else {
       this.url = ''
       if (showMsg) {
-        window.showInformationMessage(`请先[配置](command:meteor.interfaceSetting)${this.explerer.activeEnvName}环境的接口地址`)
+        window.showInformationMessage(`请先[配置](command:meteor.interfaceSetting)${this.explorer.activeEnvName}环境的接口地址`)
       }
     }
   }
@@ -207,7 +207,7 @@ export class IntfProvider {
       return
     }
     try {
-      const res = await this.explerer.fetch({
+      const res = await this.explorer.fetch({
         method: 'get',
         url: url
       })

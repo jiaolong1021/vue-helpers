@@ -86,6 +86,12 @@ export class ExplorerProvider {
   public config: any
   public fetch: AxiosInstance
   public open
+  public cloudEnvSuggestions: CompletionItem[] = []
+  public cloudServiceGroupSuggestions: CompletionItem[] = []
+  public cloud = {
+    url: '',
+    token: ''
+  }
 
   constructor(context: ExtensionContext) {
     this.context = context
@@ -208,7 +214,7 @@ export class ExplorerProvider {
   // meteor.json hover, item provider
   public addJsonProvider() {
     let selector = [{ language: 'json', scheme: '*', pattern: '**/' + this.packageName }]
-    this.context.subscriptions.push(languages.registerCompletionItemProvider(selector, new JSONCompletionItemProvider(), '"', ':'))
+    this.context.subscriptions.push(languages.registerCompletionItemProvider(selector, new JSONCompletionItemProvider(this), '"', ':'))
     this.context.subscriptions.push(languages.registerHoverProvider(selector, new JsonHoverProvider()))
   }
 
@@ -256,6 +262,45 @@ export class ExplorerProvider {
       }
     }
   }
+
+  public setCloudEnvSuggestions(envs: any[], url: string, token: string) {
+    this.cloud.url = url
+    this.cloud.token = token
+    this.cloudEnvSuggestions = []
+    envs.forEach(env => {
+      if (env.environmentName) {
+        const completionItem = new CompletionItem(env.environmentName)
+        completionItem.kind = CompletionItemKind.Property
+        completionItem.documentation = env.environmentName
+        completionItem.insertText = env.environmentName + ',' + env.environmentId
+        completionItem.sortText = '000' + this.cloudEnvSuggestions.length
+        completionItem.detail = env.environmentId
+        this.cloudEnvSuggestions.push(completionItem)
+      }
+    })
+  }
+
+  public async setCloudServiceGroupSuggestions(envId: string) {
+    const res = await this.fetch({
+      url: `${this.cloud.url}/api/environments/${envId}/groups`,
+      method: 'get',
+      headers: {
+        token: this.cloud.token
+      }
+    })
+    this.cloudServiceGroupSuggestions = []
+    res.data.data.forEach((group: any) => {
+      if (group.name) {
+        const completionItem = new CompletionItem(group.name)
+        completionItem.kind = CompletionItemKind.Property
+        completionItem.documentation = group.name
+        completionItem.insertText = group.name + ',' + group.id
+        completionItem.sortText = '000' + this.cloudServiceGroupSuggestions.length
+        completionItem.detail = ''
+        this.cloudServiceGroupSuggestions.push(completionItem)
+      }
+    });
+  }
 }
 
 class JsonHoverProvider implements HoverProvider {
@@ -276,6 +321,9 @@ class JsonHoverProvider implements HoverProvider {
     cloudUrl: '容器云访问地址',
     cloudUsername: '容器云登录账号',
     cloudPassword: '容器云登录密码',
+    cloudeEnv: '容器云环境，必填，可通过同步获取',
+    cloudeGroup: '容器云服务组，必填，可通过同步获取',
+    cloudeAccess: '容器云访问权，必填，需为英文',
     rootPath: "根路径",
     view: '页面根路径',
     api: '接口根路径',
@@ -283,6 +331,8 @@ class JsonHoverProvider implements HoverProvider {
     store: 'store根路径',
     request: '请求根路径',
     root: '工程根路径',
+    domain: '容器云域名尾部路径',
+    config: '容器云配置集放置根路径',
   }
   provideHover(document: TextDocument, position: Position): ProviderResult<Hover> {
     const currentWord = getCurrentWordByHover(document, position);
@@ -298,8 +348,13 @@ interface Items {
   documentation: string
 }
 class JSONCompletionItemProvider implements CompletionItemProvider {
+  public explorer: ExplorerProvider
+  constructor(explorer: ExplorerProvider) {
+    this.explorer = explorer
+  }
+
   provideCompletionItems(document: TextDocument, position: Position): ProviderResult<CompletionItem[] | CompletionList<CompletionItem>> {
-    const jsonItems: CompletionItem[] = [];
+    let jsonItems: CompletionItem[] = [];
     let items: Items[] = []
     const offset = document.offsetAt(position);
 		const location = getLocation(document.getText(), offset);
@@ -336,6 +391,12 @@ class JSONCompletionItemProvider implements CompletionItemProvider {
         }, {
           label: "request",
           documentation: '请求根路径'
+        }, {
+          label: "domain",
+          documentation: '容器云域名尾部路径'
+        }, {
+          label: "config",
+          documentation: '容器云配置集放置根路径'
         }]
       }
     } else if (location.matches(['development']) || location.matches(['test']) || location.matches(['product'])) {
@@ -376,7 +437,22 @@ class JSONCompletionItemProvider implements CompletionItemProvider {
           }, {
             label: 'cloudPassword',
             documentation: '容器云登录密码'
+          }, {
+            label: 'cloudeEnv',
+            documentation: '容器云环境，必填，可通过同步获取'
+          }, {
+            label: 'cloudeGroup',
+            documentation: '容器云服务组，必填，可通过同步获取'
+          }, {
+            label: 'cloudeAccess',
+            documentation: '容器云访问权，必填，需为英文'
           }]
+        } else {
+          if (location.path.includes('cloudeEnv')) {
+            jsonItems = this.explorer.cloudEnvSuggestions
+          } else if (location.path.includes('cloudeGroup')) {
+            jsonItems = this.explorer.cloudServiceGroupSuggestions
+          }
         }
       } else {
         if (location.isAtPropertyKey) {
@@ -407,6 +483,7 @@ class JSONCompletionItemProvider implements CompletionItemProvider {
           label: 'product',
           documentation: '生产环境'
         }]
+      } else {
       }
     }
     for (let i = 0; i < items.length; i++) {
@@ -420,12 +497,14 @@ class JSONCompletionItemProvider implements CompletionItemProvider {
     }
     return jsonItems
   }
-  // resolveCompletionItem?(item: CompletionItem, token: CancellationToken): ProviderResult<CompletionItem> {
-  //   // 完成选中项
-  //   console.log('resolveCompletionItem')
-  //   console.log(item, token)
-  //   return null
-  // }
+  resolveCompletionItem?(item: CompletionItem): ProviderResult<CompletionItem> {
+    // 完成选中项
+    // detail为环境id
+    if (item.detail) {
+      this.explorer.setCloudServiceGroupSuggestions(item.detail)
+    }
+    return null
+  }
 
 }
 

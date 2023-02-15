@@ -6,7 +6,9 @@ export const config = `{
     "component": "",
     "api": "src/api",
     "store": "",
-    "request": "src/utils/request"
+    "request": "src/utils/request",
+    "config": "conf",
+    "domain": "prd.uimpcloud.com"
   },
   "development": {
     "interface": {
@@ -22,7 +24,10 @@ export const config = `{
     "deploy": {
       "cloudUrl": "http://cloud.cs2025.com",
       "cloudUsername": "admin",
-      "cloudPassword": "U2FsdGVkX19TyGejvK4KWeJb1KahUGivElENkpDONhM="
+      "cloudPassword": "U2FsdGVkX19TyGejvK4KWeJb1KahUGivElENkpDONhM=",
+      "cloudeEnv": "",
+      "cloudeGroup": "",
+      "cloudeAccess": ""
     }
   },
   "test": {
@@ -39,7 +44,10 @@ export const config = `{
     "deploy": {
       "cloudUrl": "http://cloud.cs2025.com",
       "cloudUsername": "admin",
-      "cloudPassword": "U2FsdGVkX19TyGejvK4KWeJb1KahUGivElENkpDONhM="
+      "cloudPassword": "U2FsdGVkX19TyGejvK4KWeJb1KahUGivElENkpDONhM=",
+      "cloudeEnv": "",
+      "cloudeGroup": "",
+      "cloudeAccess": ""
     }
   },
   "product": {
@@ -56,7 +64,10 @@ export const config = `{
     "deploy": {
       "cloudUrl": "http://cloud.cs2025.com",
       "cloudUsername": "admin",
-      "cloudPassword": "U2FsdGVkX19TyGejvK4KWeJb1KahUGivElENkpDONhM="
+      "cloudPassword": "U2FsdGVkX19TyGejvK4KWeJb1KahUGivElENkpDONhM=",
+      "cloudeEnv": "",
+      "cloudeGroup": "",
+      "cloudeAccess": ""
     }
   }
 }`

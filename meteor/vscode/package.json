@@ -134,6 +134,21 @@
         "icon": "$(settings-gear)"
       },
       {
+        "command": "meteor.deploySync",
+        "title": "环境、服务组信息同步",
+        "icon": "$(search-refresh)"
+      },
+      {
+        "command": "meteor.deployUpload",
+        "title": "配置集上传",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "meteor.deployDownload",
+        "title": "配置集下载",
+        "icon": "$(cloud-download)"
+      },
+      {
         "command": "meteor.deployRun",
         "title": "运行",
         "icon": "$(run)"
@@ -287,6 +302,21 @@
           "when": "view == meteor && viewItem == deployTreeItem"
         },
         {
+          "command": "meteor.deploySync",
+          "group": "inline",
+          "when": "view == meteor && viewItem == deployTreeItem"
+        },
+        {
+          "command": "meteor.deployDownload",
+          "group": "inline",
+          "when": "view == meteor && viewItem == deployTreeItem"
+        },
+        {
+          "command": "meteor.deployUpload",
+          "group": "inline",
+          "when": "view == meteor && viewItem == deployTreeItem"
+        },
+        {
           "command": "meteor.deployRun",
           "group": "inline",
           "when": "view == meteor && viewItem == deployTreeItem"
@@ -324,6 +354,7 @@
     }
   },
   "devDependencies": {
+    "@types/uuid": "^9.0.0",
     "@types/vscode": "^1.74.0",
     "axios": "^0.21.1",
     "camelcase": "^7.0.1",
@@ -336,6 +367,7 @@
     "mitt": "^3.0.0",
     "opn": "^6.0.0",
     "puppeteer-core": "^19.7.0",
+    "uuid": "^9.0.0",
     "vsce": "latest"
   },
   "gitHead": "b1cc40df44b9cd73ba96d8b7f0369cc3ce690c45"

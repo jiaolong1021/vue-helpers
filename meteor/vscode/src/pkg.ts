@@ -35,18 +35,21 @@ export class PkgProvider {
       this.explerer.open(this.explerer.config[this.explerer.activeEnv].package.jenkinsUrl + '/job/' + this.explerer.project)
     }))
     this.context.subscriptions.push(commands.registerCommand('meteor.packageRun', () => {
-      this.run('build')
+      this.run('build', true)
     }))
     this.context.subscriptions.push(commands.registerCommand('meteor.packageVersion', () => {
-      this.run('version')
+      this.run('version', true)
     }))
   }
 
-  public async run(type: string) {
-    if (type === 'build') {
-      window.showInformationMessage('开始编译...')
-    } else {
-      window.showInformationMessage('正在获取最新打包状态...')
+  public async run(type: string, showMsg: boolean) {
+    let ret = ''
+    if (showMsg) {
+      if (type === 'build') {
+        window.showInformationMessage('开始编译...')
+      } else {
+        window.showInformationMessage('正在获取最新打包状态...')
+      }
     }
     // 获取分支
     let branch = ''
@@ -177,7 +180,10 @@ export class PkgProvider {
               for (let i = 0; i < outList.length; i++) {
                 const outItem = outList[i];
                 if (outItem.includes('Untagged:') && outItem.includes(`${project}:${version}`)) {
-                  window.showInformationMessage('最新编译成功\n镜像地址: ' + outItem.replace(new RegExp(`.*Untagged:\\s(.*:${version}).*`, 'gi'), '$1'))
+                  ret = outItem.replace(new RegExp(`.*Untagged:\\s(.*:${version}).*`, 'gi'), '$1')
+                  if (showMsg) {
+                    window.showInformationMessage('最新编译成功\n镜像地址: ' + ret)
+                  }
                   break
                 }
               }
@@ -185,6 +191,7 @@ export class PkgProvider {
           }
         }
       }
+      return ret
     } catch (error) {
       console.log(error)
     }
