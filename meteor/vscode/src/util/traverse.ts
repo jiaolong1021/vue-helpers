@@ -53,7 +53,6 @@ export default class Traverse {
 
   // 遍历添加
   traverseAdd(rootPath: string, dir: string, files: any[], prefix: any, poster: string, search: string) {
-    console.log(prefix)
     if (rootPath.endsWith(poster)) {
       let posterReg = new RegExp('-?(.*)' + (poster ? poster : '\\.\\w*') + '$', 'gi');
       let name = rootPath;
@@ -72,17 +71,16 @@ export default class Traverse {
       if (!search || (search && dir.includes(search))) {
         files.push({
           name: name,
-          path: dir
+          path: dir.replace(new RegExp(`^${prefix.path}`, 'gi'), prefix.alias)
         });
         if (name === 'index') {
           name = dir.replace(/.*\/(\w*)\/\w*.\w*/gi, '$1')
           files.push({
             name: name,
-            path: dir
+            path: dir.replace(new RegExp(`^${prefix.path}`, 'gi'), prefix.alias)
           })
         }
       }
-      console.log(name, dir)
     }
   }
 

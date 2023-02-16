@@ -6,6 +6,7 @@ import { IntfProvider } from './intf'
 import { PkgProvider } from './pkg';
 import { DeployProvider } from './deploy';
 import Assist from './assist';
+import ElementProvider from './element';
 
 export function activate(context: vscode.ExtensionContext) {
   // 工程
@@ -30,5 +31,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const assist = new Assist(context, explorer)
   assist.register()
-
+  
+  const element = new ElementProvider(explorer, context)
+  element.register()
 }
