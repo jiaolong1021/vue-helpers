@@ -3,7 +3,7 @@ import elementPlus from "./element-plus";
 import vue from "./vue";
 import vant from "./vant";
 
-export function getAttrs(version: string) {
+export function getGlobalAttrs(version: string) {
   if (version === 'element-ui') {
     return {
       ...element,

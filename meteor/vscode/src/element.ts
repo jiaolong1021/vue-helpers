@@ -4,12 +4,11 @@ import { ExplorerProvider } from "./explorer";
 import * as fs from 'fs'
 import * as path from 'path'
 import { setTabSpace, getWorkspaceRoot, getRelativePath } from './util/util'
-import { getAttrs } from './attributes/index';
+import { getGlobalAttrs } from './globalAttribute/index';
 import { getTags } from './tags/index';
 import { getDocuments } from './documents/index'
-import { getDocumentAttrs } from './documents-attr/index'
 import Traverse from './util/traverse'
-const pretty = require('pretty');
+// const pretty = require('pretty');
 
 export interface TagObject {
   text: string,
@@ -58,19 +57,18 @@ class ElementCompletionItemProvider implements CompletionItemProvider {
   public traverse: Traverse
   public vueFiles: any = []
   public TAGS: any = {}
-  public ATTRS: any = {}
+  public GlobalAttrs: any = {}
 
   constructor(elementProvider: ElementProvider) {
     this.elementProvider = elementProvider
     this.traverse = new Traverse(this.elementProvider.explorer, getWorkspaceRoot(window.activeTextEditor?.document.uri.path || ''))
     this.vueFiles = this.traverse.search('.vue', '')
     this.TAGS = getTags(this.elementProvider.version)
-    this.ATTRS = getAttrs(this.elementProvider.version)
+    this.GlobalAttrs = getGlobalAttrs(this.elementProvider.version)
   }
   provideCompletionItems(document: TextDocument, position: Position): ProviderResult<CompletionItem[] | CompletionList<CompletionItem>> {
     this._document = document;
     this._position = position;
-    console.time('completion')
     if (this.tabSpace.length === 0) {
       this.tabSpace = setTabSpace()
     }
@@ -84,13 +82,13 @@ class ElementCompletionItemProvider implements CompletionItemProvider {
     // 标签、属性
     let tag: TagObject | string | undefined = this.getPreTag();
     let attr = this.getPreAttr();
-    console.timeEnd('completion')
+    // let word = getCurrentWord(document, position)
     if (tag && attr && this.isAttrValueStart(tag, attr)) {
       // 属性值开始
       return this.getAttrValueSuggestion(tag.text, attr);
-    } else if (tag && this.isAttrStart(tag)) { // 属性开始
+    } else if (tag && this.isAttrStart(tag)) {
+      // 属性开始
       if (this.TAGS[tag.text]) {
-        // 插件提供
         return this.getAttrSuggestion(tag.text);
       } else {
         return this.getPropAttr(this._document.getText(), tag.text);
@@ -157,62 +155,41 @@ class ElementCompletionItemProvider implements CompletionItemProvider {
 
   // 编译建议标签
   buildTagSuggestion(tag: string, tagVal: any, id: number) {
-    const snippets: any[] = [];
-    let index = 0;
-    let that = this;
-    function build(tag: string, { subtags, defaults }: any, snippets: any) {
-      // 属性
-      let attrs = '';
-      defaults && defaults.forEach((item: any, i: any) => {
-        attrs += ` ${item}="$${index + i + 1}"`;
-      });
-      // 开始标签
-      snippets.push(`${index > 0 ? '<' : ''}${tag}${attrs}>`);
-      defaults && (index += defaults.length);
-      index++;
-      // 子标签
-      if (subtags) {
-        subtags.forEach((item: any) => build(item, that.TAGS[item], snippets));
-        snippets.push(`</${tag}>`);
-      } else {
-        // 关闭标签
-        snippets.push(`$${index}</${tag}>`);
-      }
-    };
-    build(tag, tagVal, snippets);
-
     return {
       label: tag,
-      sortText: `0${id}${tag}`,
-      insertText: new SnippetString(pretty('<' + snippets.join(''), { indent_size: that.tabSpace.length }).substr(1)),
+      sortText: `00${id}${tag}`,
+      insertText: new SnippetString(tagVal._self.text.join('\n')),
       kind: CompletionItemKind.Snippet,
       detail: `meteor`,
-      documentation: tagVal.description
+      documentation: tagVal._self.description
     };
   }
 
   // 获取建议标签
   getTagSuggestion() {
     let suggestions = [];
-
     let id = 1;
     // 添加vue组件提示
     for (let i = 0; i < this.vueFiles.length; i++) {
       const vf = this.vueFiles[i];
       suggestions.push({
         label: vf.name,
-        sortText: `000${i}${vf.name}`,
+        sortText: `0${i}${vf.name}`,
         insertText: new SnippetString(`${vf.name}$0></${vf.name}>`),
         kind: CompletionItemKind.Folder,
         detail: 'meteor',
-        documentation: 'internal component: ' + vf.path,
-        command: { command: 'meteor.functionCompletion', title: 'completions' }
+        documentation: '内部组件: ' + vf.path,
+        command: { command: 'meteor.funcEnhance', title: 'meteor: funcEnhance' }
       });
     }
 
-    for (let tag in this.TAGS) {
-      suggestions.push(this.buildTagSuggestion(tag, this.TAGS[tag], id));
-      id++;
+    try {
+      for (let tag in this.TAGS) {
+        suggestions.push(this.buildTagSuggestion(tag, this.TAGS[tag], id));
+        id++;
+      }
+    } catch (error) {
+      console.log(error)
     }
     return suggestions;
   }
@@ -331,66 +308,43 @@ class ElementCompletionItemProvider implements CompletionItemProvider {
   getAttrSuggestion(tag: string) {
     let suggestions: any[] = [];
     let tagAttrs = this.getTagAttrs(tag);
-    let preText = this.getTextBeforePosition(this._position);
-    let prefix: any = preText.replace(/['"]([^'"]*)['"]$/, '').split(/\s|\(+/).pop();
-    // 方法属性
-    const method = prefix[0] === '@';
-    // 绑定属性
-    const bind = prefix[0] === ':';
-
-    prefix = prefix.replace(/[:@]/, '');
-    if (/[^@:a-zA-z\s]/.test(prefix[0])) {
-      return suggestions;
-    }
 
     tagAttrs.forEach((attr: any) => {
-      const attrItem = this.getAttrItem(tag, attr);
-      if (!prefix.trim() || this.firstCharsEqual(attr, prefix)) {
-        const sug = this.buildAttrSuggestion({ attr, tag, bind, method }, attrItem || {});
-        sug && suggestions.push(sug);
-      }
+      suggestions.push(this.buildAttrSuggestion(attr))
     });
-    for (let attr in this.ATTRS) {
-      const attrItem = this.getAttrItem(tag, attr);
-      if (attrItem && attrItem.global && (!prefix.trim() || this.firstCharsEqual(attr, prefix))) {
-        const sug = this.buildAttrSuggestion({ attr, tag: null, bind, method }, attrItem);
-        sug && suggestions.push(sug);
-      }
+
+    for (let attr in this.GlobalAttrs) {
+      suggestions.push(this.buildAttrSuggestion({
+        name: attr,
+        ...this.GlobalAttrs[attr]
+      }))
     }
     return suggestions;
   }
 
-  buildAttrSuggestion({ attr, tag, bind, method }: any, { description, type, global, framework}: any) {
-    if ((method && type === "method") || (bind && type !== "method") || (!method && !bind)) {
-      let detail = '';
-      // detail 指定标签所属框架（目前主要有 element-plus，vux， iview2）
-      if(this.TAGS[tag] && this.TAGS[tag].framework){
-        detail += this.TAGS[tag].framework;
-      }
-      if (global) {
-        detail += `${framework}(global)`;
-      }
-      return {
-        label: attr,
-        sortText: `00${attr}`,
-        insertText: (type && (type === 'flag')) ? `${attr} ` : new SnippetString(`${attr}="$1"$0`),
-        kind: (type && (type === 'method')) ? CompletionItemKind.Method : CompletionItemKind.Property,
-        detail,
-        documentation: description || ''
-      };
-    } else { return; }
-  }
-
-  firstCharsEqual(str1: string, str2: string) {
-    if (str2 && str1) {
-      return str1[0].toLowerCase() === str2[0].toLowerCase();
-    }
-    return false;
+  buildAttrSuggestion(attr: any) {
+    const completionItem = new CompletionItem(attr.name)
+    completionItem.sortText = `000${attr.name}`
+    completionItem.insertText = attr.name
+    completionItem.kind = attr.type === 'method' ? CompletionItemKind.Method : CompletionItemKind.Property
+    completionItem.documentation = attr.description
+    return completionItem
   }
 
   // 获取标签包含的属性
   getTagAttrs(tag: string) {
-    return (this.TAGS[tag] && this.TAGS[tag].attributes) || [];
+    let attrs = []
+    if (this.TAGS[tag]) {
+      for (const key in this.TAGS[tag]) {
+        if (key !== '_self') {
+          attrs.push({
+            name: key,
+            ...this.TAGS[tag][key]
+          })
+        }
+      }
+    }
+    return attrs
   }
 
   // 属性开始
@@ -398,28 +352,19 @@ class ElementCompletionItemProvider implements CompletionItemProvider {
     return tag;
   }
 
-  // 获取属性项
-  getAttrItem(tag: string | undefined, attr: string | undefined) {
-    return this.ATTRS[`${tag}/${attr}`] || (attr && this.ATTRS[attr]);
-  }
-
   // 获取属性值
-  getAttrValues(tag: any, attr: any) {
-    let attrItem = this.getAttrItem(tag, attr);
-    let options = attrItem && attrItem.options;
-    if (!options && attrItem) {
-      if (attrItem.type === 'boolean') {
-        options = ['true', 'false'];
-      } else if (attrItem.type === 'icon') {
-        options = this.ATTRS['icons'];
-      } else if (attrItem.type === 'shortcut-icon') {
-        options = [];
-        this.ATTRS['icons'].forEach((icon: any) => {
-          options.push(icon.replace(/^el-icon-/, ''));
-        });
-      }
+  getAttrValues(tag: string, attr: string) {
+    let attrValues: string[] = []
+    // 全局
+    if (this.GlobalAttrs[attr]) {
+      attrValues = this.GlobalAttrs[attr].values
     }
-    return options || [];
+
+    if (this.TAGS[tag] && this.TAGS[tag][attr]) {
+      attrValues = this.TAGS[tag][attr].values
+    }
+
+    return attrValues
   }
   
   // 获取建议属性值
@@ -492,7 +437,7 @@ class ElementCompletionItemProvider implements CompletionItemProvider {
     }
   }
 
-  // 获取预览标签
+  // 获取标签
   getPreTag(): TagObject | undefined {
     let line = this._position.line;
     let tag: TagObject | string;
@@ -539,12 +484,10 @@ class ElementCompletionItemProvider implements CompletionItemProvider {
 class ElementHoverProvider implements HoverProvider {
   public elementProvider: ElementProvider
   public Documents: any
-  public DocumentsAttr: any
 
   constructor(elementProvider: ElementProvider) {
     this.elementProvider = elementProvider
     this.Documents = getDocuments(elementProvider.version)
-    this.DocumentsAttr = getDocumentAttrs(elementProvider.version)
   }
 
   // 获取属性所属标签
@@ -602,14 +545,6 @@ class ElementHoverProvider implements HoverProvider {
       return new Hover(this.Documents[selectText]);
     }
 
-    // 在不是标签元素情况下才获取标签名称
-    if(textMeta !== "<") {
-      let tagName = this.getTag(document, position);
-      if(tagName && this.DocumentsAttr[tagName + '/' + selectText]) {
-        return new Hover(this.DocumentsAttr[tagName + '/' + selectText]);
-      }
-    }
-
-    return null;
+    return null
   }
 }

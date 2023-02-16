@@ -1,6 +1,7 @@
 import { window, Position, Selection, Range, ExtensionContext, commands, workspace, QuickPickItem, TextEditor, TextEditorRevealType } from 'vscode'
 import { ExplorerProvider } from './explorer'
-import { asNormal, getRelativePath, setTabSpace } from './util/util'
+import { asNormal, setTabSpace, getWorkspaceRoot } from './util/util'
+import Traverse from './util/traverse'
 var glob = require("glob")
 
 export default class Assist {
@@ -8,11 +9,23 @@ export default class Assist {
   public explorer: ExplorerProvider
   public workspaceRoot: string = ''
   public tabSpace: string = ''
+  public vueFiles: any = []
+  public traverse: Traverse
+  public pathAlias = {
+    alias: '',
+    path: ''
+  }
 
   constructor(context: ExtensionContext, explorer: ExplorerProvider) {
     this.context = context
     this.explorer = explorer
     this.tabSpace = setTabSpace()
+    this.traverse = new Traverse(this.explorer, getWorkspaceRoot(window.activeTextEditor?.document.uri.path || ''))
+    if (this.explorer.config.rootPath) {
+      let alias = this.explorer.config.rootPath.root.split('=')
+      this.pathAlias.alias = alias[0]
+      this.pathAlias.path = alias[1]
+    }
   }
 
   public register() {
@@ -46,6 +59,177 @@ export default class Assist {
   public autoEnhance() {
     let editor: any = window.activeTextEditor;
     if (!editor) { return; }
+    this.workspaceRoot = getWorkspaceRoot(editor.document.uri.path)
+    let txt = editor.document.lineAt(editor.selection.anchor.line).text;
+    if(editor.document.lineCount <= editor.selection.anchor.line + 1) { return; }
+    // 组件自动导入
+    if (/<.*>\s?<\/.*>/gi.test(txt.trim()) || /<.*\/>/gi.test(txt.trim())) {
+      this.autoImportComponent(txt, editor, editor.selection.anchor.line);
+      return;
+    }
+    // 本地文件自动导入
+    let nextLineTxt = editor.document.lineAt(editor.selection.anchor.line + 1).text;
+    
+    let baseEmpty = txt.replace(/(\s)\S.*/gi, '$1');
+    let replaceTxt = ` {\n${baseEmpty}${this.tabSpace}\n${baseEmpty}}`;
+    // 本行全是空
+    if(/^\s*$/gi.test(txt) || txt === '') {
+      replaceTxt = 'name (params)' + replaceTxt;
+    } else if (/[0-9a-zA-Z]\s{0,1}:\s{0,1}[\w\"\']/gi.test(txt)) {
+      // key: value
+      replaceTxt = ',\n' + baseEmpty;
+    } else if(txt.indexOf(')') === -1) {
+      replaceTxt = ' (params)' + replaceTxt;
+    }
+    // 判断下一行是否是单行注释
+    if(/\s*\/\/\s+.*/gi.test(nextLineTxt)) {
+      if(editor.document.lineCount <= editor.selection.anchor.line + 2) { return; }
+      nextLineTxt = editor.document.lineAt(editor.selection.anchor.line + 2).text;
+    }
+    // 下一行是一个函数
+    if (/.*(.*).*{.*/gi.test(nextLineTxt)) {
+      let isCond = false;
+      let txtTrim = txt.trim();
+      const condList = ['if', 'for', 'while', 'switch'];
+      condList.forEach(cond => {
+        if (txtTrim.indexOf(cond) === 0) {
+          isCond = true;
+        }
+      });
+      if (!isCond) {
+        replaceTxt += ',';
+      }
+    }
+    editor.edit((editBuilder: any) => {
+      editBuilder.insert(new Position(editor.selection.anchor.line, txt.length + 1), replaceTxt);
+    });
+    let newPosition = editor.selection.active.translate(1, (baseEmpty + this.tabSpace).length);
+    editor.selection = new Selection(newPosition, newPosition);
+  }
+
+  // 组件自动导入
+  autoImportComponent(txt: string, editor: TextEditor, line: number) {
+    let tag = txt.trim().replace(/<([\w-]*)[\s>].*/gi, '$1');
+    // 没有vue遍历
+    if (this.vueFiles.length === 0) {
+      this.vueFiles = this.traverse.search('.vue', '');
+    }
+    for (let i = 0; i < this.vueFiles.length; i++) {
+      const vf : any = this.vueFiles[i];
+      if (tag === vf.name) {
+        let name = vf.name.replace(/(-[a-z])/g, (_: any, c: string) => {
+          return c ? c.toUpperCase() : '';
+        }).replace(/-/gi, '');
+        // 不重复插入引入
+        if (editor.document.getText().includes(`import ${name}`)) {
+          return
+        }
+        let countLine = editor.document.lineCount;
+        // 找script位置
+        while (!/^\s*<script.*>\s*$/.test(<string>editor.document.lineAt(line).text)) {
+          if (countLine > line) {
+            line++;
+          } else {
+            break;
+          }
+        }
+        let importString = `import ${name} from '${vf.path.replace(this.pathAlias.path, this.pathAlias.alias)}'\n`;
+        if (editor.document.lineAt(line).text.includes('setup')) {
+          // 组合式
+          editor.edit((editBuilder) => {
+            importString = importString.replace(/\\/gi, '/');
+            editBuilder.insert(new Position(line + 1, 0), importString);
+          });
+          return
+        }
+        if (editor.document.lineAt(line + 1).text.includes('export default')) {
+          line += 1;
+        } else {
+          line += 1;
+          if (countLine < line) {
+            return;
+          }
+          // 找import位置
+          while (/import /gi.test(editor.document.lineAt(line).text.trim())) {
+            if (countLine > line) {
+              line++;
+            } else {
+              break;
+            }
+          }
+        }
+        let importLine = line;
+        if (line < countLine) {
+          let prorityInsertLine = 0;
+          let secondInsertLine = 0;
+          let hasComponents = false;
+          let baseEmpty = '';
+          while(!/\s*<\/script>\s*/gi.test(editor.document.lineAt(line).text.trim())) {
+            if (/\s*components\s*:\s*{.*}.*/gi.test(editor.document.lineAt(line).text.trim())) {
+              let text = editor.document.lineAt(line).text;
+              let preText = text.replace(/\s*}.*$/, '');
+              let insertPos = preText.length;
+              editor.edit((editBuilder) => {
+                importString = importString.replace(/\\/gi, '/');
+                editBuilder.insert(new Position(importLine, 0), importString);
+                editBuilder.insert(new Position(line, insertPos), ', ' + name);
+              });
+              break;
+            }
+            if (hasComponents && /\s*},?\s*$/gi.test(editor.document.lineAt(line).text.trim())) {
+              let text = editor.document.lineAt(line - 1).text;
+              let insertPos = text.indexOf(text.trim());
+              let empty = '';
+              for (let i = 0; i < insertPos; i++) {
+                empty += ' ';
+              }
+              editor.edit((editBuilder) => {
+                importString = importString.replace(/\\/gi, '/');
+                editBuilder.insert(new Position(importLine, 0), importString);
+                editBuilder.insert(new Position(line - 1, editor.document.lineAt(line - 1).text.length), ',\n' + empty + name);
+              });
+              break;
+            }
+            if (/\s*components\s*:\s*{\s*$/gi.test(editor.document.lineAt(line).text.trim())) {
+              hasComponents = true;
+            }
+            if (/\s*export\s*default\s*{\s*/gi.test(editor.document.lineAt(line).text.trim())) {
+              secondInsertLine = line;
+            }
+            if (/\s*data\s*\(\s*\)\s*{\s*/gi.test(editor.document.lineAt(line).text.trim())) {
+              let text = editor.document.lineAt(line).text;
+              let insertPos = text.indexOf(text.trim());
+              for (let i = 0; i < insertPos; i++) {
+                baseEmpty += '';
+              }
+              prorityInsertLine = line;
+            }
+            if (countLine > line) {
+              line++;
+            } else {
+              break;
+            }
+          }
+          if (prorityInsertLine > 0) {
+            editor.edit((editBuilder) => {
+              importString = importString.replace(/\\/gi, '/');
+              editBuilder.insert(new Position(importLine - 1, 0), importString);
+              editBuilder.insert(new Position(prorityInsertLine - 1, editor.document.lineAt(prorityInsertLine - 1).text.length), `\n\t${baseEmpty}components: { ${name} },`);
+            });
+            break;
+          }
+          if (secondInsertLine > 0) {
+            editor.edit((editBuilder) => {
+              importString = importString.replace(/\\/gi, '/');
+              editBuilder.insert(new Position(importLine, 0), importString);
+              editBuilder.insert(new Position(secondInsertLine, editor.document.lineAt(secondInsertLine).text.length),  `\n${this.tabSpace}components: { ${name} },`);
+            });
+          }
+        }
+
+        break;
+      }
+    }
   }
 
   public jumpAndGenerateMtd() {
@@ -549,9 +733,9 @@ export default class Assist {
     let preText = txt.substring(0, editor.selection.anchor.character).replace(/.*['"]([^'"]*)$/, '$1')
     let postText = txt.substring(editor.selection.anchor.character, txt.length).replace(/([^'"]*)['"].*$/, '$1')
     let fileName = (preText + postText).trim()
-    let basePath = editor.document.uri.path
     let fileSelection = new Selection(new Position(editor.selection.anchor.line, editor.selection.anchor.character - preText.length), 
     new Position(editor.selection.anchor.line, editor.selection.anchor.character + postText.length))
+    let that = this
     function getFiles(fileName: string) {
       if (!fileName) {
         quickPick.items = []
@@ -567,7 +751,7 @@ export default class Assist {
         let name = p.replace(/.*\/(.*)\..*/gi, '$1')
         items.push({
           label: name,
-          description: getRelativePath(basePath, p)
+          description: p.replace(that.pathAlias.path, that.pathAlias.alias)
         })
       });
       quickPick.items = items
