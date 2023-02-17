@@ -1,4 +1,4 @@
-import * as vscode from 'vscode';
+import { ExtensionContext, workspace } from 'vscode';
 import { ProjectProvider } from './project'
 import { ExplorerProvider } from './explorer'
 import { ComponentProvider } from './component'
@@ -8,30 +8,32 @@ import { DeployProvider } from './deploy';
 import Assist from './assist';
 import ElementProvider from './element';
 
-export function activate(context: vscode.ExtensionContext) {
+export function activate(context: ExtensionContext) {
   // 工程
   const project = new ProjectProvider(context)
   project.showInStatusBar()
   project.registerCommand()
 
-  const explorer = new ExplorerProvider(context)
-  explorer.register()
-
-  const component = new ComponentProvider(context)
-  component.register()
-
-  const intf = new IntfProvider(context, explorer)
-  intf.register()
-
-  const pkg = new PkgProvider(context, explorer)
-  pkg.register()
-
-  const deploy = new DeployProvider(context, explorer, pkg)
-  deploy.register()
-
-  const assist = new Assist(context, explorer)
-  assist.register()
+  if (workspace.workspaceFolders) {
+    const explorer = new ExplorerProvider(context)
+    explorer.register()
   
-  const element = new ElementProvider(explorer, context)
-  element.register()
+    const component = new ComponentProvider(context)
+    component.register()
+  
+    const intf = new IntfProvider(context, explorer)
+    intf.register()
+  
+    const pkg = new PkgProvider(context, explorer)
+    pkg.register()
+  
+    const deploy = new DeployProvider(context, explorer, pkg)
+    deploy.register()
+  
+    const assist = new Assist(context, explorer)
+    assist.register()
+    
+    const element = new ElementProvider(explorer, context)
+    element.register()
+  }
 }

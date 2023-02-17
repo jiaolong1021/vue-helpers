@@ -1,5 +1,5 @@
 // 文档入口
-import element from './element-plus';
+import element from './element-ui';
 import elementPlus from './element-plus';
 import vant from './vant';
 

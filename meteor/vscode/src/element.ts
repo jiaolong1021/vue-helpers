@@ -3,9 +3,9 @@ import { ExtensionContext, languages, CompletionItemProvider, Range, CompletionI
 import { ExplorerProvider } from "./explorer";
 import * as fs from 'fs'
 import * as path from 'path'
-import { setTabSpace, getWorkspaceRoot, getRelativePath } from './util/util'
+import { setTabSpace, getWorkspaceRoot, getRelativePath, getCurrentWord } from './util/util'
 import { getGlobalAttrs } from './globalAttribute/index';
-import { getTags } from './tags/index';
+import { getTags, getJsTags } from './tags/index';
 import { getDocuments } from './documents/index'
 import Traverse from './util/traverse'
 // const pretty = require('pretty');
@@ -57,6 +57,7 @@ class ElementCompletionItemProvider implements CompletionItemProvider {
   public traverse: Traverse
   public vueFiles: any = []
   public TAGS: any = {}
+  public TAGSJs: any = {}
   public GlobalAttrs: any = {}
 
   constructor(elementProvider: ElementProvider) {
@@ -64,6 +65,7 @@ class ElementCompletionItemProvider implements CompletionItemProvider {
     this.traverse = new Traverse(this.elementProvider.explorer, getWorkspaceRoot(window.activeTextEditor?.document.uri.path || ''))
     this.vueFiles = this.traverse.search('.vue', '')
     this.TAGS = getTags(this.elementProvider.version)
+    this.TAGSJs = getJsTags(this.elementProvider.version)
     this.GlobalAttrs = getGlobalAttrs(this.elementProvider.version)
   }
   provideCompletionItems(document: TextDocument, position: Position): ProviderResult<CompletionItem[] | CompletionList<CompletionItem>> {
@@ -82,7 +84,8 @@ class ElementCompletionItemProvider implements CompletionItemProvider {
     // 标签、属性
     let tag: TagObject | string | undefined = this.getPreTag();
     let attr = this.getPreAttr();
-    // let word = getCurrentWord(document, position)
+    let word = getCurrentWord(document, position)
+    console.log(word)
     if (tag && attr && this.isAttrValueStart(tag, attr)) {
       // 属性值开始
       return this.getAttrValueSuggestion(tag.text, attr);
@@ -93,23 +96,27 @@ class ElementCompletionItemProvider implements CompletionItemProvider {
       } else {
         return this.getPropAttr(this._document.getText(), tag.text);
       }
-    } else if (this.isTagStart()) {
-      let ret: any[] = []
-      switch (document.languageId) {
-        case 'vue':
-          ret = this.notInTemplate() ? [] : this.getTagSuggestion();
-          break;
-        case 'html':
-        case 'wxml':
-          ret = this.getTagSuggestion();
-          break;
+    }
+    // else if (this.isTagStart()) {
+    //   let ret: any[] = []
+    //   switch (document.languageId) {
+    //     case 'vue':
+    //       ret = this.notInTemplate() ? [] : this.getTagSuggestion();
+    //       break;
+    //     case 'html':
+    //     case 'wxml':
+    //       ret = this.getTagSuggestion();
+    //       break;
       
-        default:
-          break;
-      }
-      return ret
-    } else if (this.isImport()) {
+    //     default:
+    //       break;
+    //   }
+    //   return ret
+    // } 
+    else if (this.isImport()) {
       return this.importSuggestion();
+    } else if (word.includes('e')) {
+      return this.notInTemplate() ? this.getTagJsSuggestion() : this.getTagSuggestion()
     } else {
       return []
     }
@@ -192,6 +199,21 @@ class ElementCompletionItemProvider implements CompletionItemProvider {
       console.log(error)
     }
     return suggestions;
+  }
+
+  // 获取js代码提示
+  getTagJsSuggestion() {
+    let suggestions: any[] = [];
+    let id = 1;
+    try {
+      for (let tag in this.TAGSJs) {
+        suggestions.push(this.buildTagSuggestion(tag, this.TAGSJs[tag], id));
+        id++;
+      }
+    } catch (error) {
+      console.log(error)
+    }
+    return suggestions
   }
 
   // vue文件只在template里面提示，已script作为标记
@@ -309,15 +331,25 @@ class ElementCompletionItemProvider implements CompletionItemProvider {
     let suggestions: any[] = [];
     let tagAttrs = this.getTagAttrs(tag);
 
+    let preText = this.getTextBeforePosition(this._position);
+    let prefix: any = preText.replace(/['"]([^'"]*)['"]$/, '').split(/\s|\(+/).pop();
+    // 方法属性
+    const type = prefix[0] === '@' ? 'method' : 'attribute';
+
     tagAttrs.forEach((attr: any) => {
-      suggestions.push(this.buildAttrSuggestion(attr))
+      if (attr.type === type) {
+        suggestions.push(this.buildAttrSuggestion(attr))
+      }
     });
 
     for (let attr in this.GlobalAttrs) {
-      suggestions.push(this.buildAttrSuggestion({
-        name: attr,
-        ...this.GlobalAttrs[attr]
-      }))
+      let gAttr = this.GlobalAttrs[attr]
+      if (gAttr.type === type) {
+        suggestions.push(this.buildAttrSuggestion({
+          name: attr,
+          ...gAttr
+        }))
+      }
     }
     return suggestions;
   }
