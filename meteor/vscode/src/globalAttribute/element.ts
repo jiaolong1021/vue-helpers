@@ -1,7 +1,6 @@
 export default {
-  'loading': {
+  'v-loading': {
     type: 'attribute',
-    description: 'loading attribute',
-    values: ['a', 'b']
+    description: 'loading attribute'
   }
 };

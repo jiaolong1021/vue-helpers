@@ -85,7 +85,7 @@ class ElementCompletionItemProvider implements CompletionItemProvider {
     let tag: TagObject | string | undefined = this.getPreTag();
     let attr = this.getPreAttr();
     let word = getCurrentWord(document, position)
-    console.log(word)
+    let hasSquareQuote = document.lineAt(position.line).text.includes('<')
     if (tag && attr && this.isAttrValueStart(tag, attr)) {
       // 属性值开始
       return this.getAttrValueSuggestion(tag.text, attr);
@@ -97,26 +97,14 @@ class ElementCompletionItemProvider implements CompletionItemProvider {
         return this.getPropAttr(this._document.getText(), tag.text);
       }
     }
-    // else if (this.isTagStart()) {
-    //   let ret: any[] = []
-    //   switch (document.languageId) {
-    //     case 'vue':
-    //       ret = this.notInTemplate() ? [] : this.getTagSuggestion();
-    //       break;
-    //     case 'html':
-    //     case 'wxml':
-    //       ret = this.getTagSuggestion();
-    //       break;
-      
-    //     default:
-    //       break;
-    //   }
-    //   return ret
-    // } 
     else if (this.isImport()) {
       return this.importSuggestion();
     } else if (word.includes('e')) {
       return this.notInTemplate() ? this.getTagJsSuggestion() : this.getTagSuggestion()
+    } else if (word.includes('v')) {
+      return this.getTagSuggestion()
+    } else if (!tag && hasSquareQuote) {
+      return this.notInTemplate() ? [] : this.getElementTagLabelSuggestion()
     } else {
       return []
     }
@@ -170,6 +158,46 @@ class ElementCompletionItemProvider implements CompletionItemProvider {
       detail: `meteor`,
       documentation: tagVal._self.description
     };
+  }
+
+  getElementTagLabelSuggestion() {
+    let suggestions = [];
+    let id = 1;
+    // 添加vue组件提示
+    for (let i = 0; i < this.vueFiles.length; i++) {
+      const vf = this.vueFiles[i];
+      suggestions.push({
+        label: vf.name,
+        sortText: `0${i}${vf.name}`,
+        insertText: new SnippetString(`${vf.name}$0></${vf.name}>`),
+        kind: CompletionItemKind.Folder,
+        detail: 'meteor',
+        documentation: '内部组件: ' + vf.path,
+        command: { command: 'meteor.funcEnhance', title: 'meteor: funcEnhance' }
+      });
+    }
+
+    try {
+      let labels: string[] = []
+      for (let tag in this.TAGS) {
+        let label = tag.replace(/:.*/gi, '')
+        if (!labels.includes(label)) {
+          labels.push(label)
+          suggestions.push({
+            label: label,
+            sortText: `00${id}${label}`,
+            insertText: new SnippetString(`${label}$0></${label}>`),
+            kind: CompletionItemKind.Snippet,
+            detail: `meteor`,
+            documentation: this.TAGS[tag]._self.description
+          });
+          id++;
+        }
+      }
+    } catch (error) {
+      console.log(error)
+    }
+    return suggestions;
   }
 
   // 获取建议标签

@@ -14,5 +14,7 @@ export function getDocuments(version: string) {
       ...vant,
       ...elementPlus
     }
+  } else {
+    return vant
   }
 }

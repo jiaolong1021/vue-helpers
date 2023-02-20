@@ -2371,7 +2371,7 @@ export default {
     "el-table-column": {
         "_self": {
             "description": "",
-            "text": ["<template #default=\"scope\">\n\t{{scope.row.status}}\n</template>"]
+            "text": ["<template slot-scope=\"scope\">\n\t{{scope.row.status}}\n</template>"]
         },
         "type": {
             "type": "attribute",
