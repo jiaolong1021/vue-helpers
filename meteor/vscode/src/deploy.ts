@@ -292,6 +292,9 @@ export class DeployProvider {
       // 上传配置信息
       let configPath = path.join(this.explorer.projectRootPath, this.explorer.config.rootPath.config, this.explorer.activeEnv)
       const dirList = fs.readdirSync(configPath)
+      if (dirList.length === 0) {
+        return window.showInformationMessage(`请将配置文件放到${configPath.replace(this.explorer.projectRootPath, '')}目录下后再次尝试`)
+      }
       let configData = {
         id: project,
         description: '',

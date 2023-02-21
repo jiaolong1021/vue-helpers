@@ -1,6 +1,6 @@
 import { window, Position, Selection, Range, ExtensionContext, commands, workspace, QuickPickItem, TextEditor, TextEditorRevealType } from 'vscode'
 import { ExplorerProvider } from './explorer'
-import { asNormal, setTabSpace, getWorkspaceRoot } from './util/util'
+import { asNormal, setTabSpace, getWorkspaceRoot, getRelativePath } from './util/util'
 import Traverse from './util/traverse'
 var glob = require("glob")
 
@@ -733,9 +733,9 @@ export default class Assist {
     let preText = txt.substring(0, editor.selection.anchor.character).replace(/.*['"]([^'"]*)$/, '$1')
     let postText = txt.substring(editor.selection.anchor.character, txt.length).replace(/([^'"]*)['"].*$/, '$1')
     let fileName = (preText + postText).trim()
+    let basePath = editor.document.uri.path
     let fileSelection = new Selection(new Position(editor.selection.anchor.line, editor.selection.anchor.character - preText.length), 
     new Position(editor.selection.anchor.line, editor.selection.anchor.character + postText.length))
-    let that = this
     function getFiles(fileName: string) {
       if (!fileName) {
         quickPick.items = []
@@ -751,7 +751,7 @@ export default class Assist {
         let name = p.replace(/.*\/(.*)\..*/gi, '$1')
         items.push({
           label: name,
-          description: p.replace(that.pathAlias.path, that.pathAlias.alias)
+          description: getRelativePath(basePath, p)
         })
       });
       quickPick.items = items

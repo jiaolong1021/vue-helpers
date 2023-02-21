@@ -1,11 +1,13 @@
 {
-  "name": "meteor",
+  "name": "meteor-zl",
   "version": "1.0.2",
   "description": "every thing for speed",
   "keywords": [
     "meteor",
     "vscode"
   ],
+  "icon": "asset/logo.png",
+  "publisher": "shenjiaolong",
   "author": "shenjiaolong",
   "homepage": "https://www.80fight.cn/",
   "license": "ISC",

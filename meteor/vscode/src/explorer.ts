@@ -137,7 +137,7 @@ export class ExplorerProvider {
       await window.showTextDocument(document, { preserveFocus: true });
     }))
     this.context.subscriptions.push(commands.registerCommand('meteor.explain', () => {
-      open(url.official)
+      open(url.official + '/vscode/')
     }))
     this.context.subscriptions.push(commands.registerCommand('meteor.libraryVisit', async () => {
       const remoteCmd = await execa('git', ['remote', '-v'], { cwd: this.projectRootPath })
