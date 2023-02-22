@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as os from 'os'
-import { window, StatusBarAlignment, ExtensionContext, commands, WebviewPanel, ViewColumn, Uri, Disposable, OpenDialogOptions } from 'vscode'
+import { window, StatusBarAlignment, ExtensionContext, commands, WebviewPanel, ViewColumn, Uri, Disposable, OpenDialogOptions, workspace } from 'vscode'
 import { getHtmlForWebview, store } from './util/util'
 import * as fs from 'fs'
 import { execa } from 'execa'
@@ -12,9 +12,11 @@ export class ProjectProvider {
   public activeView: WebviewPanel | undefined;
   private _disposables: Disposable[] = [];
   private projectDir: string = ''
+  public init: Function
 
-  constructor(context: ExtensionContext) {
+  constructor(context: ExtensionContext, init: Function) {
     this.context = context
+    this.init = init
   }
 
   // 通过状态栏创建工程
@@ -37,7 +39,11 @@ export class ProjectProvider {
       if (os.platform().includes('win')) {
         projectDir = '/' + projectDir.replace(/\\/gi, '/');
       }
-      commands.executeCommand("vscode.openFolder", Uri.parse(projectDir), false).then(() => ({}), () => window.showInformationMessage("打开工程失败！"));
+      commands.executeCommand("vscode.openFolder", Uri.parse(projectDir), false).then(() => {
+        if (workspace.workspaceFolders) {
+          this.init(this.context)
+        }
+      }, () => window.showInformationMessage("打开工程失败！"));
     });
     this.context.subscriptions.push(newProjectCmd)
     this.context.subscriptions.push(openProjectCmd)

@@ -10,12 +10,17 @@ import ElementProvider from './element';
 
 export function activate(context: ExtensionContext) {
   // 工程
-  const project = new ProjectProvider(context)
+  const project = new ProjectProvider(context, init)
   project.showInStatusBar()
   project.registerCommand()
 
   if (workspace.workspaceFolders) {
-    const explorer = new ExplorerProvider(context)
+    init(context)
+  }
+}
+
+function init(context: ExtensionContext) {
+  const explorer = new ExplorerProvider(context)
     explorer.register()
   
     const component = new ComponentProvider(context)
@@ -35,5 +40,4 @@ export function activate(context: ExtensionContext) {
     
     const element = new ElementProvider(explorer, context)
     element.register()
-  }
 }
