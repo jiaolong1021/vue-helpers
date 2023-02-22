@@ -164,3 +164,7 @@ export function getCurrentWordByHover(document: TextDocument, position: Position
   textMeta = line.text.substr(posIndex, 1);
   return selectText
 }
+
+export function getSwaggerKey(url: string) {
+  return url.replace(/.*\/\//gi, '').replace(/\..*/gi, '').replace(/-/gi, '_')
+}

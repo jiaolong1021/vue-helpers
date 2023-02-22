@@ -8,11 +8,12 @@ export const config = `{
     "store": "",
     "request": "src/utils/request",
     "config": "conf",
-    "domain": "prd.uimpcloud.com"
+    "domain": "prd.uimpcloud.com",
+    "swaggerConfig": "static/conf/front-config.js:apiServer"
   },
   "development": {
     "interface": {
-      "swaggerUrl": ""
+      "swaggerUrl": []
     },
     "package": {
       "jenkinsUrl": "http://jenkins.cs2025.com",
@@ -32,7 +33,7 @@ export const config = `{
   },
   "test": {
     "interface": {
-      "swaggerUrl": ""
+      "swaggerUrl": []
     },
     "package": {
       "jenkinsUrl": "http://jenkins.cs2025.com",
@@ -52,7 +53,7 @@ export const config = `{
   },
   "product": {
     "interface": {
-      "swaggerUrl": ""
+      "swaggerUrl": []
     },
     "package": {
       "jenkinsUrl": "http://jenkins.cs2025.com",

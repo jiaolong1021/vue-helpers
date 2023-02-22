@@ -1,7 +1,7 @@
 import { Event, ExtensionContext, ProviderResult, TreeDataProvider, TreeItem, window, TreeItemCollapsibleState, ThemeIcon, TreeView, commands, 
   languages, CompletionItemProvider, CompletionItem, CompletionList, Position, TextDocument, CompletionItemKind, HoverProvider, Hover, Uri, workspace,
   Selection, Range, TextEditorRevealType } from 'vscode'
-import { getWorkspaceRoot, getCurrentWordByHover, open, url } from './util/util'
+import { getWorkspaceRoot, getCurrentWordByHover, open, url, getSwaggerKey } from './util/util'
 import * as path from 'path'
 import * as fs from 'fs'
 import { config } from './util/constant'
@@ -175,8 +175,77 @@ export class ExplorerProvider {
     if (meteorConfig) {
       try {
         this.config = JSON.parse(meteorConfig)
+        this.updateSwaggerConfig()
       } catch (error) {
       }
+    }
+  }
+
+  public updateSwaggerConfig() {
+    if (this.config.rootPath && this.config.rootPath.swaggerConfig) {
+      let swaggerPaths = this.config.rootPath.swaggerConfig.split(':')
+      let swaggerPath = swaggerPaths[0]
+      let field = swaggerPaths[1]
+      let activeSwaggers = this.config[this.activeEnv].interface.swaggerUrl
+      let keys: any[] = []
+      let fields: string[] = []
+      activeSwaggers.forEach((url: string, index: number) => {
+        let key = getSwaggerKey(url)
+        if (keys.includes(key)) {
+          keys.push({
+            key: key + index,
+            url: url
+          })
+          fields.push(key + index)
+        } else {
+          keys.push({
+            key: key,
+            url: url
+          })
+          fields.push(key)
+        }
+      });
+      let configFile = fs.readFileSync(path.join(this.projectRootPath, swaggerPath), 'utf-8')
+      let configFileLines = configFile.split('\n')
+      let text = ''
+      let start = false
+      let space = ''
+      for (let i = 0; i < configFileLines.length; i++) {
+        const line = configFileLines[i];
+        if (line.includes(field)) {
+          start = true
+        }
+        if (start) {
+          let nextLine = ''
+          if (i < configFileLines.length - 1) {
+            nextLine = configFileLines[i + 1]
+          }
+          if (nextLine.includes('}')) {
+            // 结束
+            if (keys.length > 0) {
+              if (space.length === 0) {
+                space = line.replace(/\w.*/gi, '')
+              }
+              if (!line.includes(",")) {
+                text = text + line + ',\n'
+              }
+              keys.forEach(key => {
+                text += `${space}${key.key}: '${key.url.replace(/(http(s)?:\/\/[^\/]*).*/gi, '$1')}',\n`
+              });
+              keys = []
+              continue
+            }
+          } else {
+            let swaggerField = line.split(':')[0].trim()
+            if (fields.includes(swaggerField)) {
+              fields.splice(fields.indexOf(swaggerField), 1)
+              keys.splice(fields.indexOf(swaggerField), 1)
+            }
+          }
+        }
+        text += line + '\n'
+      }
+      fs.writeFileSync(path.join(this.projectRootPath, swaggerPath), text, 'utf-8')
     }
   }
   
@@ -356,6 +425,7 @@ class JsonHoverProvider implements HoverProvider {
     root: '工程根路径',
     domain: '容器云域名尾部路径',
     config: '容器云配置集放置根路径',
+    swaggerConfig: 'swagger自动生成路径',
   }
   provideHover(document: TextDocument, position: Position): ProviderResult<Hover> {
     const currentWord = getCurrentWordByHover(document, position);
@@ -420,6 +490,9 @@ class JSONCompletionItemProvider implements CompletionItemProvider {
         }, {
           label: "config",
           documentation: '容器云配置集放置根路径'
+        }, {
+          label: "swaggerConfig",
+          documentation: 'swagger自动生成路径'
         }]
       }
     } else if (location.matches(['development']) || location.matches(['test']) || location.matches(['product'])) {

@@ -77,6 +77,7 @@ export class PkgProvider {
           height: 768
         }
       });
+      
 
       const page = await this.browser.newPage();
       this.page = page
@@ -97,6 +98,7 @@ export class PkgProvider {
         try {
           const h2Text = await this.page.$eval('body > h2', (node: any) => node.innerText)
           if (h2Text === 'HTTP ERROR 404 Not Found') {
+            window.showInformationMessage(`job: ${project}不存在，正在新建...`)
             // 新建job
             await this.page.goto(`${pkgConfig.jenkinsUrl}/view/${pkgConfig.jenkinsView}/newJob`, {
               waitUntil: 'networkidle0'
@@ -121,11 +123,12 @@ export class PkgProvider {
                   page.click('[type="submit"]', {}),
                 ]);
                 await this.page.goto(`${pkgConfig.jenkinsUrl}/job/${project}/build?delay=0sec`)
+                window.showInformationMessage(`job: ${project}新建成功...`)
               }
             }
           }
         } catch (error) {
-          
+          window.showInformationMessage(error as any)
         }
   
         // 判断分支是否设置
@@ -137,13 +140,37 @@ export class PkgProvider {
           return ret
         })
         if (branchOptions.includes(branch)) {
+          const statusList = await this.page.$$eval('#buildHistory .single-line', (els: any) => {
+            var ret: any[] = []
+            els.forEach((el: any) => {
+              var status = 'fail'
+              var statusIcon = el.querySelector('.icon-blue')
+              var innerText = el.querySelector('.display-name').innerText
+              if (statusIcon) {
+                status = 'success'
+              }
+              ret.push({
+                status,
+                innerText
+              })
+            });
+            return ret
+          })
+          let version: any = 0
+          if (statusList.length > 0) {
+            let status = statusList[0]
+            version = parseInt(status.innerText.replace(/#/gi, '')) + 1
+          }
+          version = 'jenkins-' + version
           // 选择分支
           await this.page.select('[name="value"]', branch)
           const genBtn = await this.page.$('#yui-gen1-button')
           if (genBtn) {
             await genBtn.click()
           }
-          window.showInformationMessage('已开始打包, 3s后可尝试获取镜像地址...')
+          execa('git', ['tag', version], { cwd: this.explerer.projectRootPath })
+          execa('git', ['push', 'origin', version], { cwd: this.explerer.projectRootPath })
+          window.showInformationMessage(`开始打包,仓库已打标签[${version}], 3s后可尝试获取镜像地址...`)
         } else {
           window.showInformationMessage(`[前往设置分支](${pkgConfig.jenkinsUrl}/job/${project}/configure)`)
         }
@@ -194,6 +221,7 @@ export class PkgProvider {
       return ret
     } catch (error) {
       console.log(error)
+      window.showInformationMessage(error as any)
     }
   }
 }

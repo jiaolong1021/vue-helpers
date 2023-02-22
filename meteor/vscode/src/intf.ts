@@ -1,6 +1,6 @@
 import { commands, ExtensionContext, TextDocument, window, Position, CompletionItem, CompletionItemKind, CompletionItemProvider, CompletionList, 
-  ProviderResult, languages, MarkdownString } from 'vscode'
-import { getWorkspaceRoot, open, setTabSpace, getCurrentWord } from './util/util'
+  ProviderResult, languages, MarkdownString, QuickPickItem } from 'vscode'
+import { getWorkspaceRoot, open, setTabSpace, getCurrentWord, getSwaggerKey } from './util/util'
 import * as path from 'path'
 import * as fs from 'fs'
 import { ExplorerProvider } from './explorer';
@@ -16,7 +16,9 @@ interface ApiItem {
 }
 
 interface Api {
-  [prop: string]: ApiItem
+  [prop: string]: {
+    [prop: string]: ApiItem
+  }
 }
 
 export class IntfProvider {
@@ -24,8 +26,8 @@ export class IntfProvider {
   public explorer: ExplorerProvider
   // 获取到的swagger数据信息
   public api: Api = {}
-  public url: string = ''
-  public version = 2 // 目前支持2.0 3.0
+  public url: string[] = []
+  // public version = 2 // 目前支持2.0 3.0
   private fileType: String = 'ts' // 生成文件类型
   private projectRootPath: string = '' // 工程所在位置
   public static apiCompletionItem: CompletionItem[] = []
@@ -91,11 +93,35 @@ export class IntfProvider {
     }))
     this.context.subscriptions.push(commands.registerCommand('meteor.interfaceVisit', () => {
       this.getSwaggerUrl(true)
-      this.url && open(this.url)
+      if (this.url.length === 1) {
+        this.url && open(this.url[0])
+      } else if (this.url.length > 1) {
+        let items: QuickPickItem[] = [];
+        this.url.forEach(urlItem => {
+          items.push({
+            label: urlItem
+          })
+        });
+        const quickPick = window.createQuickPick()
+        quickPick.title = `swagger地址访问`
+        quickPick.placeholder = 'swagger地址'
+        quickPick.value = ''
+        quickPick.items = items
+        quickPick.onDidChangeSelection((selection) => {
+          if (selection[0] && selection[0].label) {
+            open(selection[0].label)
+          }
+          quickPick.hide()
+        })
+        quickPick.onDidHide(() => {
+          quickPick.dispose()
+        })
+        quickPick.show() 
+      }
     }))
     this.context.subscriptions.push(commands.registerCommand('meteor.generateApiFile', (params) => {
-      this.generateImport(params.apiName)
-      this.generateApiFile(params.apiName)
+      this.generateImport(params.apiName, params.url)
+      this.generateApiFile(params.apiName, params.url)
     }))
     this.context.subscriptions.push(
       languages.registerCompletionItemProvider(['vue', 'javascript', 'typescript', 'html', 'wxml'], new ApiCompletionItemProvider(), '')
@@ -105,7 +131,7 @@ export class IntfProvider {
   }
 
   // 导入文件生成
-  public generateImport(apiName: string) {
+  public generateImport(apiName: string, url: string) {
     let editor = window.activeTextEditor;
     if (!editor) { return; }
     commands.executeCommand('vscode.executeDocumentSymbolProvider', editor.document.uri).then(async (symbols: any) => {
@@ -122,7 +148,7 @@ export class IntfProvider {
             let currentLine = symbolItem.children[0].range.c.c
             let insertLine = -1
             let insertCharacter = 0
-            let filePath = this.getFullPath(this.api[apiName].filePath)
+            let filePath = this.getFullPath(this.api[url][apiName].filePath)
             let insertText = ''
             let isExist = false
             if (currentLine > 2) {
@@ -162,15 +188,28 @@ export class IntfProvider {
   }
 
   // 生成额外文件
-  public generateApiFile(apiName: string) {
+  public generateApiFile(apiName: string, url: string) {
     let apiFilePath = ''
-    let api = this.api[apiName]
+    let api = this.api[url][apiName]
     try {
       apiFilePath = path.join(this.projectRootPath, api.filePath + '.' + this.fileType)
       fs.statSync(apiFilePath)
     } catch (error) {
+      let baseURL = ''
       let filePath = this.getFullPath(this.requestPath)
-      fs.writeFileSync(apiFilePath, `import request from \'${filePath}'\nconst baseURL = ''\n`);
+      if (this.explorer.config.rootPath && this.explorer.config.rootPath.swaggerConfig) {
+        let swaggerPaths = this.explorer.config.rootPath.swaggerConfig.split(':')
+        let swaggerPath = swaggerPaths[0]
+        let field = swaggerPaths[1]
+        if (this.fileType === 'ts') {
+          baseURL += '(window as any).'
+        }
+        
+        let configFile = fs.readFileSync(path.join(this.projectRootPath, swaggerPath), 'utf-8').trim()
+        let variable = configFile.replace(/^(var|const)\s*/gi, '').replace(/\s+.*/gi, '')
+        baseURL = baseURL + variable + '.' + field + '.' + getSwaggerKey(url)
+      }
+      fs.writeFileSync(apiFilePath, `import request from \'${filePath}'\nconst baseURL = ${baseURL}\n`);
     }
     let apiText = fs.readFileSync(apiFilePath, 'utf-8')
     // 存在
@@ -193,7 +232,7 @@ export class IntfProvider {
     if (conf && conf.interface && conf.interface.swaggerUrl) {
       this.url = conf.interface.swaggerUrl
     } else {
-      this.url = ''
+      this.url = []
       if (showMsg) {
         window.showInformationMessage(`请先[配置](command:meteor.interfaceSetting)${this.explorer.activeEnvName}环境的接口地址`)
       }
@@ -202,174 +241,185 @@ export class IntfProvider {
 
   // 获取swaggger接口信息
   public async getApi(showMsg: boolean) {
-    let url = this.getApiUrl()
-    if (!url) {
+    let urlList = this.getApiUrl()
+    if (urlList.length === 0) {
       return
     }
     try {
-      const res = await this.explorer.fetch({
-        method: 'get',
-        url: url
-      })
+      this.definitions = {}
       IntfProvider.apiCompletionItem = []
-      switch (this.version) {
-        case 2:
-          this.definitions = res.data.definitions
-          break;
-        case 3:
-          if (res.data.components && res.data.components.schemas) {
-            this.definitions = res.data.components.schemas
-          }
-          break;
-        default:
-          break;
-      }
-      // 通过接口第一级来定义存放文件
-      for (const apiPath in res.data.paths) {
-        const req = res.data.paths[apiPath];
-        for (const reqMtd in req) {
-          const reqBody = req[reqMtd];
-          let apiName = '';
-          let apiPaths: string[] = apiPath.split('/');
-          let nameList: string[] = []
-          let apiPathLen = apiPaths.length;
-          let annotation = '';
-          if (reqBody.description) {
-            annotation = '\n/**\n';
-            annotation += '* ' + reqBody.description + '\n';
-            annotation += '*/\n';
-          }
-          if (apiPathLen > 2) {
-            let prev = apiPaths[apiPathLen - 2];
-            let last = apiPaths[apiPathLen - 1];
-            // 判断存在多级路径参数
-            let idInParent = false
-            if (/^{.*}$/gi.test(prev)) {
-              idInParent = true
-              prev = prev.replace(/^{(.*)}$/, '$1');
-              prev = 'by' + prev[0].toUpperCase() + prev.substr(1, prev.length);
+      for (let i = 0; i < urlList.length; i++) {
+        const uri = urlList[i];
+        const res = await this.explorer.fetch({
+          method: 'get',
+          url: uri.api
+        })
+        switch (uri.version) {
+          case 2:
+            this.definitions[uri.url] = res.data.definitions
+            break;
+          case 3:
+            if (res.data.components && res.data.components.schemas) {
+              this.definitions[uri.url] = res.data.components.schemas
             }
-            if (/^{.*}$/gi.test(last)) {
-              last = last.replace(/^{(.*)}$/, '$1');
-              last = 'by' + last[0].toUpperCase() + last.substr(1, last.length);
+            break;
+          default:
+            break;
+        }
+        // 通过接口第一级来定义存放文件
+        for (const apiPath in res.data.paths) {
+          const req = res.data.paths[apiPath];
+          for (const reqMtd in req) {
+            const reqBody = req[reqMtd];
+            let apiName = '';
+            let apiPaths: string[] = apiPath.split('/');
+            let nameList: string[] = []
+            let apiPathLen = apiPaths.length;
+            let annotation = '';
+            if (reqBody.description) {
+              annotation = '\n/**\n';
+              annotation += '* ' + reqBody.description + '\n';
+              annotation += '*/\n';
             }
-            if (idInParent) {
-              nameList = [prev, last];
-            } else {
-              nameList = [last];
-            }
-          } else {
-            nameList = [apiPaths[apiPathLen - 1]]
-          }
-          // 加上请求前缀
-          if (nameList[0] && !nameList[0].toLowerCase().includes(reqMtd)) {
-            nameList.unshift(reqMtd);
-          }
-          // 重名处理
-          apiName = camelCase(nameList);
-          if (this.api[apiName]) {
-            let name = ''
             if (apiPathLen > 2) {
-              name = apiPaths[apiPathLen - 2]
-              if (!/^{.*}$/gi.test(name)) {
-                nameList.splice(1, 0, name)
-                apiName = camelCase(nameList);
+              let prev = apiPaths[apiPathLen - 2];
+              let last = apiPaths[apiPathLen - 1];
+              // 判断存在多级路径参数
+              let idInParent = false
+              if (/^{.*}$/gi.test(prev)) {
+                idInParent = true
+                prev = prev.replace(/^{(.*)}$/, '$1');
+                prev = 'by' + prev[0].toUpperCase() + prev.substr(1, prev.length);
               }
-              if (this.api[apiName]) {
-                if (apiPathLen > 3) {
-                  name = apiPaths[apiPathLen - 3]
-                  if (!/^{.*}$/gi.test(name)) {
-                    nameList.splice(1, 0, name)
-                    apiName = camelCase(nameList);
-                  }
+              if (/^{.*}$/gi.test(last)) {
+                last = last.replace(/^{(.*)}$/, '$1');
+                last = 'by' + last[0].toUpperCase() + last.substr(1, last.length);
+              }
+              if (idInParent) {
+                nameList = [prev, last];
+              } else {
+                nameList = [last];
+              }
+            } else {
+              nameList = [apiPaths[apiPathLen - 1]]
+            }
+            // 加上请求前缀
+            if (nameList[0] && !nameList[0].toLowerCase().includes(reqMtd)) {
+              nameList.unshift(reqMtd);
+            }
+            // 重名处理
+            apiName = camelCase(nameList);
+            if (!this.api[uri.url]) {
+              this.api[uri.url] = {}
+            }
+            if (this.api[uri.url][apiName]) {
+              let name = ''
+              if (apiPathLen > 2) {
+                name = apiPaths[apiPathLen - 2]
+                if (!/^{.*}$/gi.test(name)) {
+                  nameList.splice(1, 0, name)
+                  apiName = camelCase(nameList);
                 }
-                if (this.api[apiName]) {
-                  if (apiPathLen > 4) {
-                    name = apiPaths[apiPathLen - 4]
+                if (this.api[uri.url][apiName]) {
+                  if (apiPathLen > 3) {
+                    name = apiPaths[apiPathLen - 3]
                     if (!/^{.*}$/gi.test(name)) {
                       nameList.splice(1, 0, name)
                       apiName = camelCase(nameList);
                     }
                   }
+                  if (this.api[uri.url][apiName]) {
+                    if (apiPathLen > 4) {
+                      name = apiPaths[apiPathLen - 4]
+                      if (!/^{.*}$/gi.test(name)) {
+                        nameList.splice(1, 0, name)
+                        apiName = camelCase(nameList);
+                      }
+                    }
+                  }
                 }
               }
             }
-          }
-          this.api[apiName] = {
-            reqPath: apiPath,
-            annotation: annotation,
-            description: reqBody.description || '',
-            filePath: path.join(this.projectApiPath, `${apiPaths[0] || apiPaths[1]}`),
-            method: reqMtd,
-            params: reqBody.parameters
-          }
-
-          // 接口生成文本拼装
-          let insertText = `const res = await ${apiName}({\n`
-          if (reqBody.parameters && reqBody.parameters.length > 0) {
-            // 参数排序
-            let params: any = {}
-            reqBody.parameters.forEach((param: any) => {
-              if (param.in) {
-                if (params[param.in]) {
-                  params[param.in].push(param)
-                } else {
-                  params[param.in] = [param]
+            this.api[uri.url][apiName] = {
+              reqPath: apiPath,
+              annotation: annotation,
+              description: reqBody.description || '',
+              filePath: path.join(this.projectApiPath, `${apiPaths[0] || apiPaths[1]}`),
+              method: reqMtd,
+              params: reqBody.parameters
+            }
+  
+            // 接口生成文本拼装
+            let insertText = `const res = await ${apiName}({\n`
+            if (reqBody.parameters && reqBody.parameters.length > 0) {
+              // 参数排序
+              let params: any = {}
+              reqBody.parameters.forEach((param: any) => {
+                if (param.in) {
+                  if (params[param.in]) {
+                    params[param.in].push(param)
+                  } else {
+                    params[param.in] = [param]
+                  }
+                }
+              })
+              for (const key in params) {
+                const paramList = params[key]
+                 let assemble = this.assembleParameters(key, paramList)
+                 if (assemble.position === 'append') {
+                   insertText += assemble.value
+                 } else if (assemble.position === 'top') {
+                  insertText = assemble.value + insertText
+                 }
+              }
+            }
+            if (reqBody.requestBody && reqBody.requestBody.content) {
+              for (const key in reqBody.requestBody.content) {
+                const reqBodyParams = reqBody.requestBody.content[key]
+                switch (key) {
+                  case 'multipart/form-data':
+                    if (reqBodyParams.schema && reqBodyParams.schema.properties) {
+                      let assembe = this.assembleParametersInRequestBody(key, reqBodyParams.schema.properties, uri.url)
+                      insertText = assembe.prepend + insertText
+                      insertText += assembe.append
+                    }
+                    break;
+                  case 'application/json':
+                    if (reqBodyParams.schema && reqBodyParams.schema.$ref) {
+                      let assembe = this.assembleParametersInRequestBody(key, reqBodyParams.schema.$ref, uri.url)
+                      insertText += assembe.append
+                    }
+                    break;
+                
+                  default:
+                    break;
                 }
               }
-            })
-            for (const key in params) {
-              const paramList = params[key]
-               let assemble = this.assembleParameters(key, paramList)
-               if (assemble.position === 'append') {
-                 insertText += assemble.value
-               } else if (assemble.position === 'top') {
-                insertText = assemble.value + insertText
-               }
             }
-          }
-          if (reqBody.requestBody && reqBody.requestBody.content) {
-            for (const key in reqBody.requestBody.content) {
-              const reqBodyParams = reqBody.requestBody.content[key]
-              switch (key) {
-                case 'multipart/form-data':
-                  if (reqBodyParams.schema && reqBodyParams.schema.properties) {
-                    let assembe = this.assembleParametersInRequestBody(key, reqBodyParams.schema.properties)
-                    insertText = assembe.prepend + insertText
-                    insertText += assembe.append
-                  }
-                  break;
-                case 'application/json':
-                  if (reqBodyParams.schema && reqBodyParams.schema.$ref) {
-                    let assembe = this.assembleParametersInRequestBody(key, reqBodyParams.schema.$ref)
-                    insertText += assembe.append
-                  }
-                  break;
-              
-                default:
-                  break;
-              }
+            insertText += '})'
+  
+            let link = ''
+            let linkSimple = reqBody.tags[0] + '/' + reqBody.operationId
+            if (reqBody.tags && reqBody.tags.length > 0) {
+              link = uri.url + '#/' + linkSimple
             }
+            let completionItem = new CompletionItem(apiName)
+            completionItem.kind = CompletionItemKind.Function
+            completionItem.insertText = insertText
+            completionItem.documentation = new MarkdownString(`#### ${reqBody.description}
+  接口地址: [${linkSimple}](${link})
+  
+  存放路径: ${this.getFullPath(path.join(this.projectApiPath, `${apiPaths[0] || apiPaths[1]}.${this.fileType}`))}`)
+            completionItem.sortText = '444' + IntfProvider.apiCompletionItem.length
+            completionItem.command = { command: 'meteor.generateApiFile', title: 'meteor.generateApiFile', arguments: [{
+              apiName,
+              url: uri.url
+            }]}
+            IntfProvider.apiCompletionItem.push(completionItem)
           }
-          insertText += '})'
-
-          let link = ''
-          let linkSimple = reqBody.tags[0] + '/' + reqBody.operationId
-          if (reqBody.tags && reqBody.tags.length > 0) {
-            link = this.url + '#/' + linkSimple
-          }
-          let completionItem = new CompletionItem(apiName)
-          completionItem.kind = CompletionItemKind.Function
-          completionItem.insertText = insertText
-          completionItem.documentation = new MarkdownString(`#### ${reqBody.description}
-接口地址: [${linkSimple}](${link})
-
-存放路径: ${this.getFullPath(path.join(this.projectApiPath, `${apiPaths[0] || apiPaths[1]}.${this.fileType}`))}`)
-          completionItem.sortText = '444' + IntfProvider.apiCompletionItem.length
-          completionItem.command = { command: 'meteor.generateApiFile', title: 'meteor.generateApiFile', arguments: [{
-            apiName
-          }]}
-          IntfProvider.apiCompletionItem.push(completionItem)
+        }
+        if (showMsg) {
+          window.showInformationMessage(`${i}/${urlList.length}: 同步完成${uri.url}`)
         }
       }
       if (showMsg) {
@@ -382,7 +432,7 @@ export class IntfProvider {
     }
   }
 
-  public assembleParametersInRequestBody(type: string, params: any) {
+  public assembleParametersInRequestBody(type: string, params: any, url: string) {
     let prepend = ''
     let append = ''
     switch (type) {
@@ -402,9 +452,9 @@ export class IntfProvider {
         if (params) {
           let refs = params.split('/')
           let ref = refs[refs.length - 1]
-          if (this.definitions[ref] && this.definitions[ref].properties) {
-            for (const key in this.definitions[ref].properties) {
-              const param = this.definitions[ref].properties[key]
+          if (this.definitions[url][ref] && this.definitions[url][ref] && this.definitions[url][ref].properties) {
+            for (const key in this.definitions[url][ref].properties) {
+              const param = this.definitions[url][ref].properties[key]
               if (!append) {
                 append += `${this.tabSpace}data: {\n`
               }
@@ -481,20 +531,34 @@ export class IntfProvider {
 
   // 获取请求地址
   public getApiUrl() {
-    let baseUrls = this.url.match(/http(s)?:\/\/[^\/]*/gi)
-    if (baseUrls && baseUrls.length > 0) {
-      let baseUrl = baseUrls[0]
-      if (this.url.includes('swagger-ui.')) {
-        this.version = 2
-        return baseUrl + '/v2/api-docs'
-      } else if (this.url.includes('swagger-ui/')) {
-        this.version = 3
-        return baseUrl + '/v3/api-docs'
+    let urlList = this.url
+    let urls: {
+      url: string,
+      api: string,
+      version: number
+    }[] = []
+    urlList.forEach(url => {
+      let baseUrls = url.match(/http(s)?:\/\/[^\/]*/gi)
+      if (baseUrls && baseUrls.length > 0) {
+        let baseUrl = baseUrls[0]
+        if (url.includes('swagger-ui.')) {
+          urls.push({
+            url: url,
+            api: baseUrl + '/v2/api-docs',
+            version: 2
+          })
+        } else if (url.includes('swagger-ui/')) {
+          urls.push({
+            url: url,
+            api: baseUrl + '/v3/api-docs',
+            version: 3
+          })
+        }
+      } else {
+        window.showInformationMessage('请检查swagger地址是否正确')
       }
-    } else {
-      window.showInformationMessage('请检查swagger地址是否正确')
-    }
-    return ''
+    });
+    return urls
   }
 }
 
