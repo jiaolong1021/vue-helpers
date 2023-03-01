@@ -210,9 +210,10 @@ export class ExplorerProvider {
       let text = ''
       let start = false
       let space = ''
+      let startReg = new RegExp(`${field}\\s?:\\s+{`, 'gi')
       for (let i = 0; i < configFileLines.length; i++) {
         const line = configFileLines[i];
-        if (line.includes(field)) {
+        if (startReg.test(line)) {
           start = true
         }
         if (start) {

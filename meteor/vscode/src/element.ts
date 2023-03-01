@@ -120,8 +120,18 @@ class ElementCompletionItemProvider implements CompletionItemProvider {
     let suggestions: CompletionItem[] = [];
     if (search) {
       let files = this.traverse.search('', search);
+      let pathAlias = this.elementProvider.explorer.config.rootPath.root.split('=')
+      let prefix = ''
+      if (pathAlias.length === 2) {
+        prefix = pathAlias[0]
+      }
       files.forEach(vf => {
-        let filePath = getRelativePath(this._document.uri.path, path.join(this.elementProvider.explorer.projectRootPath, vf.path));
+        let filePath = '';
+        if (prefix) {
+          filePath = vf.path
+        } else {
+          filePath = getRelativePath(this._document.uri.path, path.join(this.elementProvider.explorer.projectRootPath, vf.path))
+        }
         let camelName = vf.name.replace(/(-[a-z])/g, (_: any, c: any) => {
           return c ? c.toUpperCase() : '';
         }).replace(/-/gi, '');

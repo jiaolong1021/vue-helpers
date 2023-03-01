@@ -2,7 +2,9 @@ export default {
     "el-row": {
         "_self": {
             "description": "",
-            "text": ["<el-row :gutter=\"${1:10}\">\n\t<el-col :span=\"${2:6}\">$3</el-col>\n</el-row>"]
+            "text": [`<el-row>
+  <el-col :span=""></el-col>
+</el-row>`]
         },
         "gutter": {
             "type": "attribute",
@@ -133,7 +135,7 @@ export default {
     "el-icon": {
         "_self": {
             "description": "提供了一套常用的图标集合。",
-            "text": ["<el-icon size=\"14\" color=\"$1\">\n\t$2\n</el-icon>"]
+            "text": [`<i class=""></i>`]
         }
     },
     "el-button-group": {
@@ -473,7 +475,7 @@ export default {
     "el-input": {
         "_self": {
             "description": "通过鼠标或键盘输入字符",
-            "text": ["<el-input v-model=\"$1\" placeholder=\"${2:请输入}\" :suffix-icon=\"Search\" @change=\"${3:query}\"></el-input>"]
+            "text": [`<el-input v-model="$1" placeholder="请输入内容"></el-input>`]
         },
         "type": {
             "type": "attribute",
@@ -639,7 +641,12 @@ export default {
     "el-autocomplete": {
         "_self": {
             "description": "",
-            "text": ["<el-autocomplete v-model=\"$1\" placeholder=\"\" :fetch-suggestions=\"fetchSuggestions\" @select=\"handleSelect\">\n</el-autocomplete>"]
+            "text": [`<el-autocomplete
+v-model="state1"
+:fetch-suggestions="querySearch"
+placeholder="请输入内容"
+@select="handleSelect"
+></el-autocomplete>`]
         },
         "placeholder": {
             "type": "attribute",

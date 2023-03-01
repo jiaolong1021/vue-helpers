@@ -365,7 +365,7 @@ export class IntfProvider {
               })
               for (const key in params) {
                 const paramList = params[key]
-                 let assemble = this.assembleParameters(key, paramList)
+                 let assemble = this.assembleParameters(key, paramList, uri.url)
                  if (assemble.position === 'append') {
                    insertText += assemble.value
                  } else if (assemble.position === 'top') {
@@ -474,7 +474,7 @@ export class IntfProvider {
 
   // 拼装请求参数 key: ['header', 'body', 'query', 'path', 'formData']
   // ['string', 'array', 'boolean', 'integer', 'ref', 'file’, ‘object’]
-  public assembleParameters(key: string, paramList: any []) {
+  public assembleParameters(key: string, paramList: any [], url: string) {
     let params = ''
     let position = 'append'
     let paramsKey = this.paramsKeys[key]
@@ -491,6 +491,17 @@ export class IntfProvider {
             if (param.schema) {
               if (param.schema.originalRef) {
                 params += `${this.tabSpace}${this.tabSpace}${param.name}: {},\n`
+              } else if (param.schema.$ref) {
+                let ref = param.schema.$ref.replace(/.*\//gi, '')
+                if (this.definitions[url][ref] && this.definitions[url][ref] && this.definitions[url][ref].properties) {
+                  for (const key in this.definitions[url][ref].properties) {
+                    const param = this.definitions[url][ref].properties[key]
+                    if (!params) {
+                      params += `${this.tabSpace}data: {\n`
+                    }
+                    params += `${this.tabSpace}${this.tabSpace}${key}: ${this.paramsDefault[param.type] || "''"},\n`
+                  }
+                }
               } else if (param.schema.type === 'array') {
                 if (key === 'query') {
                   // query中数组格式参数需要序列化

@@ -220,12 +220,13 @@ export class DeployProvider {
   }
 
   public async deploy() {
+    window.showInformationMessage('正在进行容器云部署，请稍等...')
     // 获取镜像
     const pkgDocker = await this.pkg.run('version', false)
     if (!pkgDocker) {
       return window.showInformationMessage('未获取到镜像，请先打包')
     } else {
-      window.showInformationMessage('本次部署镜像为: ' + pkgDocker)
+      window.showInformationMessage('本次部署镜像: ' + pkgDocker)
     }
     
     await this.login()
