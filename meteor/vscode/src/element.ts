@@ -67,6 +67,11 @@ class ElementCompletionItemProvider implements CompletionItemProvider {
     this.TAGS = getTags(this.elementProvider.version)
     this.TAGSJs = getJsTags(this.elementProvider.version)
     this.GlobalAttrs = getGlobalAttrs(this.elementProvider.version)
+    if (workspace.workspaceFolders) {
+      const watcher = workspace.createFileSystemWatcher('**/*.vue')
+      watcher.onDidCreate(() => { this.vueFiles = this.traverse.search('.vue', '') })
+      watcher.onDidDelete(() => { this.vueFiles = this.traverse.search('.vue', '') })
+    }
   }
   provideCompletionItems(document: TextDocument, position: Position): ProviderResult<CompletionItem[] | CompletionList<CompletionItem>> {
     this._document = document;

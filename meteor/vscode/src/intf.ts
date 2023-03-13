@@ -209,7 +209,7 @@ export class IntfProvider {
         let variable = configFile.replace(/^(var|const)\s*/gi, '').replace(/\s+.*/gi, '')
         baseURL = baseURL + variable + '.' + field + '.' + getSwaggerKey(url)
       }
-      fs.writeFileSync(apiFilePath, `import request from \'${filePath}'\nconst baseURL = ${baseURL}\n`);
+      fs.writeFileSync(apiFilePath, `import request from \'${filePath}'\nconst baseURL = ${baseURL ? baseURL : "''"}\n`);
     }
     let apiText = fs.readFileSync(apiFilePath, 'utf-8')
     // 存在

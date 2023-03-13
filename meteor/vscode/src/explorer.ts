@@ -1,6 +1,6 @@
 import { Event, ExtensionContext, ProviderResult, TreeDataProvider, TreeItem, window, TreeItemCollapsibleState, ThemeIcon, TreeView, commands, 
   languages, CompletionItemProvider, CompletionItem, CompletionList, Position, TextDocument, CompletionItemKind, HoverProvider, Hover, Uri, workspace,
-  Selection, Range, TextEditorRevealType } from 'vscode'
+  Selection, Range, TextEditorRevealType, env } from 'vscode'
 import { getWorkspaceRoot, getCurrentWordByHover, open, url, getSwaggerKey } from './util/util'
 import * as path from 'path'
 import * as fs from 'fs'
@@ -145,6 +145,17 @@ export class ExplorerProvider {
         const remoteMatchs = remoteCmd.stdout.match(/http.* /)
         if (remoteMatchs && remoteMatchs?.length > 0) {
           open(remoteMatchs[0].trim())
+        }
+      }
+    }))
+    this.context.subscriptions.push(commands.registerCommand('meteor.libraryAddress', async () => {
+      const remoteCmd = await execa('git', ['remote', '-v'], { cwd: this.projectRootPath })
+      if (remoteCmd.stdout) {
+        const remoteMatchs = remoteCmd.stdout.match(/http.* /)
+        if (remoteMatchs && remoteMatchs?.length > 0) {
+          let url = remoteMatchs[0].trim()
+          env.clipboard.writeText(url)
+          window.showInformationMessage('仓库地址[已复制到剪切板]：' + url)
         }
       }
     }))

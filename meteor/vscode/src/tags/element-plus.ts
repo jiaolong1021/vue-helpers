@@ -2608,7 +2608,7 @@ export default {
   "el-table-column": {
       "_self": {
           "description": "",
-          "text": ["<template #default=\"scope\">\n\t{{scope.row.status}}\n</template>"]
+          "text": ["<el-table-column\n\t\tprop=\"${2:prop}\"\n\t\tlabel=\"${3:label}\"\n\t\twidth=\"${4:width}\">\n\t</el-table-column>"]
       },
       "type": {
           "type": "attribute",

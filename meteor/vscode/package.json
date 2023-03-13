@@ -1,6 +1,6 @@
 {
   "name": "meteor-zl",
-  "version": "1.0.9",
+  "version": "1.1.1",
   "description": "every thing for speed",
   "keywords": [
     "meteor",
@@ -216,6 +216,14 @@
         }
       },
       {
+        "command": "meteor.libraryAddress",
+        "title": "获取仓库地址",
+        "icon": {
+          "light": "asset/light/ok.svg",
+          "dark": "asset/dark/ok.svg"
+        }
+      },
+      {
         "command": "meteor.generatePage",
         "title": "生成页面"
       }
@@ -351,6 +359,11 @@
         },
         {
           "command": "meteor.libraryVisit",
+          "group": "inline",
+          "when": "view == meteor && viewItem == libraryTreeItem"
+        },
+        {
+          "command": "meteor.libraryAddress",
           "group": "inline",
           "when": "view == meteor && viewItem == libraryTreeItem"
         }

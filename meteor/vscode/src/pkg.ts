@@ -1,4 +1,4 @@
-import { commands, ExtensionContext, window } from 'vscode'
+import { commands, ExtensionContext, window, env } from 'vscode'
 import { ExplorerProvider } from './explorer'
 import { execa } from 'execa'
 const puppeteer = require("puppeteer-core")
@@ -209,7 +209,8 @@ export class PkgProvider {
                 if (outItem.includes('Untagged:') && outItem.includes(`${project}:${version}`)) {
                   ret = outItem.replace(new RegExp(`.*Untagged:\\s(.*:${version}).*`, 'gi'), '$1')
                   if (showMsg) {
-                    window.showInformationMessage('最新编译成功\n镜像地址: ' + ret)
+                    env.clipboard.writeText(ret)
+                    window.showInformationMessage('最新编译成功，已复制到剪切板 \n 镜像地址: ' + ret)
                   }
                   break
                 }

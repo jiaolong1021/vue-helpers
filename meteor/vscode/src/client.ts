@@ -17,13 +17,17 @@ export function activate(context: ExtensionContext) {
   if (workspace.workspaceFolders) {
     init(context)
   }
+  // {
+//   "key": "shift+cmd+o",
+//   "command": "workbench.action.gotoSymbol"
+// }
 }
 
 function init(context: ExtensionContext) {
   const explorer = new ExplorerProvider(context)
     explorer.register()
   
-    const component = new ComponentProvider(context)
+    const component = new ComponentProvider(context, explorer)
     component.register()
   
     const intf = new IntfProvider(context, explorer)

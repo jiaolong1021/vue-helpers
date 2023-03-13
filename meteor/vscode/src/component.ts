@@ -6,9 +6,11 @@ import { ExtensionContext, commands, window, WebviewPanel, ViewColumn, Uri, Disp
 import { open, url, getHtmlForWebview, winRootPathHandle, getWorkspaceRoot, getRelativePath } from './util/util'
 import axios, { AxiosInstance } from 'axios';
 import vuePropsDef from './util/vueProps';
+import { ExplorerProvider } from './explorer';
 
 export class ComponentProvider {
   public context: ExtensionContext
+  public explorer: ExplorerProvider
   public activeView: WebviewPanel | undefined;
   private readonly viewType = 'meteorComponent'
   private _disposables: Disposable[] = [];
@@ -38,9 +40,11 @@ export class ComponentProvider {
   public fetch: AxiosInstance
   public suggestions: CompletionItem[] = []
   public pageSuggestions: CompletionItem[] = []
+  public category: string = 'miniapp'
 
-  constructor(context: ExtensionContext) {
+  constructor(context: ExtensionContext, explorer: ExplorerProvider) {
     this.context = context
+    this.explorer = explorer
     this.fetch = axios.create({
       baseURL: url.base,
       withCredentials: false
@@ -74,10 +78,12 @@ export class ComponentProvider {
 
     const pickItems: QuickPickItem[] = [];
     this.pages.forEach((item: any) => {
-      pickItems.push({
-        label: item.label,
-        description: item.description
-      });
+      if (this.category === item.description || item.description === 'common') {
+        pickItems.push({
+          label: item.label,
+          description: item.description
+        });
+      }
     });
     
     const pagePick = window.createQuickPick();
@@ -286,7 +292,7 @@ export class ComponentProvider {
       for (const key in conf) {
         pages.push({
           label: key,
-          description: `(${conf[key].category})`
+          description: `${conf[key].category}`
         });
       }
       this.pageTemplateList = Object.assign(this.pageTemplateList, conf);
@@ -1210,6 +1216,16 @@ ${space}},\n`;
   }
 
   public initConfig() {
+    const pkg = fs.readFileSync(path.join(this.explorer.projectRootPath, 'package.json'), 'utf-8')
+    if (/"vue":\s*".?2.*"/gi.test(pkg)) {
+      this.category = 'vue2'
+    } else if (/"vue":\s*".?3.*"/gi.test(pkg)) {
+      this.category = 'vue3'
+    } else if (/"react":\s*".?3.*"/gi.test(pkg)) {
+      this.category = 'react'
+    } else {
+      this.category = 'miniapp'
+    }
     this.setPage(this.templateRoot, 'page.json', '插件中page.json文件出错！', false)
     this.setPage(this.componentRoot, 'component.json', '目前还没有内置组件', true)
   }
@@ -1233,27 +1249,29 @@ ${space}},\n`;
   public setSuggestions() {
     for (const key in this.pageTemplateList) {
       const component = this.pageTemplateList[key]
-      let documentation = ''
-      if (component.remark) {
-        documentation += `##### ${component.remark} \n  `
-      }
-      if (component.avatar) {
-        documentation += `![meteor](${component.avatar})`
-      }
-      let completionItem = new CompletionItem(key)
-      completionItem.label = key
-      completionItem.sortText = `000${key}`
-      completionItem.insertText = ''
-      completionItem.kind = CompletionItemKind.Snippet
-      completionItem.detail = 'meteor'
-      completionItem.documentation = new MarkdownString(documentation)
-      completionItem.command = { command: 'meteor.componentCompetion', title: 'completions', arguments: [{
-        name: key
-      }] }
-      if (component.type === '1') {
-        this.pageSuggestions.push(completionItem)
-      } else {
-        this.suggestions.push(completionItem)
+      if (this.category === component.category || component.category === 'common') {
+        let documentation = ''
+        if (component.remark) {
+          documentation += `##### ${component.remark} \n  `
+        }
+        if (component.avatar) {
+          documentation += `![meteor](${component.avatar})`
+        }
+        let completionItem = new CompletionItem(key)
+        completionItem.label = key
+        completionItem.sortText = `000${key}`
+        completionItem.insertText = `meteor [${component.category}]`
+        completionItem.kind = CompletionItemKind.Snippet
+        completionItem.detail = 'meteor'
+        completionItem.documentation = new MarkdownString(documentation)
+        completionItem.command = { command: 'meteor.componentCompetion', title: 'completions', arguments: [{
+          name: key
+        }] }
+        if (component.type === '1') {
+          this.pageSuggestions.push(completionItem)
+        } else {
+          this.suggestions.push(completionItem)
+        }
       }
     }
   }
