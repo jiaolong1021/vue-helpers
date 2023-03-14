@@ -643,6 +643,159 @@ export default {
 | change| 值改变时触发（使用鼠标拖曳时，只在松开鼠标后触发）| val，新状态的值 |
 | input| 数据改变时触发（使用鼠标拖曳时，活动过程实时触发）| val，改变后的值 |
 `,
+"el-time-picker": `#### [访问](https://element-plus.gitee.io/zh-CN/component/datetime-picker.html)
+#### Attributes
+| 参数| 说明| 类型| 可选值| 默认值 |
+| :--- | :--- | :--- | :--- | :--- |
+| value / v-model| 绑定值| date(TimePicker) / string(TimeSelect)| —| — |
+| readonly| 完全只读| boolean| —| false |
+| disabled| 禁用| boolean| —| false |
+| editable| 文本框可输入| boolean| —| true |
+| clearable| 是否显示清除按钮| boolean| —| true |
+| size| 输入框尺寸| string| medium / small / mini| — |
+| placeholder| 非范围选择时的占位内容| string| —| — |
+| start-placeholder| 范围选择时开始日期的占位内容| string| —| — |
+| end-placeholder| 范围选择时开始日期的占位内容| string| —| — |
+| is-range| 是否为时间范围选择，仅对<el-time-picker>有效| boolean| —| false |
+| arrow-control| 是否使用箭头进行时间选择，仅对<el-time-picker>有效| boolean| —| false |
+| align| 对齐方式| string| left / center / right| left |
+| popper-class| TimePicker 下拉框的类名| string| —| — |
+| picker-options| 当前时间日期选择器特有的选项参考下表| object| —| {} |
+| range-separator| 选择范围时的分隔符| string| -| '-' |
+| value-format| 可选，仅TimePicker时可用，绑定值的格式。不指定则绑定值为 Date 对象| string| 见日期格式| — |
+| default-value| 可选，选择器打开时默认显示的时间| Date(TimePicker) / string(TimeSelect)| 可被new Date()解析(TimePicker) / 可选值(TimeSelect)| — |
+| name| 原生属性| string| —| — |
+| prefix-icon| 自定义头部图标的类名| string| —| el-icon-time |
+| clear-icon| 自定义清空图标的类名| string| —| el-icon-circle-close |
+#### Time Select Options
+| 参数| 说明| 类型| 可选值| 默认值 |
+| :--- | :--- | :--- | :--- | :--- |
+| start| 开始时间| string| —| 09:00 |
+| end| 结束时间| string| —| 18:00 |
+| step| 间隔时间| string| —| 00:30 |
+| minTime| 最小时间，小于该时间的时间段将被禁用| string| —| 00:00 |
+| maxTime| 最大时间，大于该时间的时间段将被禁用| string| —| — |
+#### Time Picker Options
+| 参数| 说明| 类型| 可选值| 默认值 |
+| :--- | :--- | :--- | :--- | :--- |
+| selectableRange| 可选时间段，例如'18:30:00 - 20:30:00'或者传入数组['09:30:00 - 12:00:00', '14:30:00 - 18:30:00']| string / array| —| — |
+| format| 时间格式化(TimePicker)| string| 小时：HH，分：mm，秒：ss，AM/PM A| 'HH:mm:ss' |
+#### Events
+| 事件名| 说明| 参数 |
+| :--- | :--- | :--- |
+| change| 用户确认选定的值时触发| 组件绑定值 |
+| blur| 当 input 失去焦点时触发| 组件实例 |
+| focus| 当 input 获得焦点时触发| 组件实例 |
+#### Methods
+| 方法名| 说明| 参数 |
+| :--- | :--- | :--- |
+| focus| 使 input 获取焦点| - |
+`,
+  "el-date-picker": `#### [访问](https://element-plus.gitee.io/zh-CN/component/date-picker.html)
+#### Attributes
+| 参数| 说明| 类型| 可选值| 默认值 |
+| :--- | :--- | :--- | :--- | :--- |
+| value / v-model| 绑定值| date(DatePicker) / array(DateRangePicker)| —| — |
+| readonly| 完全只读| boolean| —| false |
+| disabled| 禁用| boolean| —| false |
+| editable| 文本框可输入| boolean| —| true |
+| clearable| 是否显示清除按钮| boolean| —| true |
+| size| 输入框尺寸| string| large, small, mini| — |
+| placeholder| 非范围选择时的占位内容| string| —| — |
+| start-placeholder| 范围选择时开始日期的占位内容| string| —| — |
+| end-placeholder| 范围选择时结束日期的占位内容| string| —| — |
+| type| 显示类型| string| year/month/date/dates/ week/datetime/datetimerange/ daterange/monthrange| date |
+| format| 显示在输入框中的格式| string| 见日期格式| yyyy-MM-dd |
+| align| 对齐方式| string| left, center, right| left |
+| popper-class| DatePicker 下拉框的类名| string| —| — |
+| picker-options| 当前时间日期选择器特有的选项参考下表| object| —| {} |
+| range-separator| 选择范围时的分隔符| string| —| '-' |
+| default-value| 可选，选择器打开时默认显示的时间| Date| 可被new Date()解析| — |
+| default-time| 范围选择时选中日期所使用的当日内具体时刻| string[]| 数组，长度为 2，每项值为字符串，形如12:00:00，第一项指定开始日期的时刻，第二项指定结束日期的时刻，不指定会使用时刻 00:00:00| — |
+| value-format| 可选，绑定值的格式。不指定则绑定值为 Date 对象| string| 见日期格式| — |
+| name| 原生属性| string| —| — |
+| unlink-panels| 在范围选择器里取消两个日期面板之间的联动| boolean| —| false |
+| prefix-icon| 自定义头部图标的类名| string| —| el-icon-date |
+| clear-icon| 自定义清空图标的类名| string| —| el-icon-circle-close |
+| validate-event| 输入时是否触发表单的校验| boolean| -| true |
+#### Picker Options
+| 参数| 说明| 类型| 可选值| 默认值 |
+| :--- | :--- | :--- | :--- | :--- |
+| shortcuts| 设置快捷选项，需要传入 { text, onClick } 对象用法参考 demo 或下表| Object[]| —| — |
+| disabledDate| 设置禁用状态，参数为当前日期，要求返回 Boolean| Function| —| — |
+| cellClassName| 设置日期的 className| Function(Date)| —| — |
+| firstDayOfWeek| 周起始日| Number| 1 到 7| 7 |
+| onPick| 选中日期后会执行的回调，只有当 daterange 或 datetimerange 才生效| Function({ maxDate, minDate })| —| — |
+#### Shortcuts
+| 参数| 说明| 类型| 可选值| 默认值 |
+| :--- | :--- | :--- | :--- | :--- |
+| text| 标题文本| string| —| — |
+| onClick| 选中后的回调函数，参数是 vm，可通过触发 'pick' 事件设置选择器的值。例如 vm.$emit('pick', new Date())| function| —| — |
+#### Events
+| 事件名称| 说明| 回调参数 |
+| :--- | :--- | :--- |
+| change| 用户确认选定的值时触发| 组件绑定值。格式与绑定值一致，可受 value-format 控制 |
+| blur| 当 input 失去焦点时触发| 组件实例 |
+| focus| 当 input 获得焦点时触发| 组件实例 |
+#### Methods
+| 方法名| 说明| 参数 |
+| :--- | :--- | :--- |
+| focus| 使 input 获取焦点| — |
+`,
+  "el-datetime-picker": `#### [访问](https://element-plus.gitee.io/zh-CN/component/datetime-picker.html)
+#### Attributes
+| 参数| 说明| 类型| 可选值| 默认值 |
+| :--- | :--- | :--- | :--- | :--- |
+| value / v-model| 绑定值| date(DateTimePicker) / array(DateTimeRangePicker)| —| — |
+| readonly| 完全只读| boolean| —| false |
+| disabled| 禁用| boolean| —| false |
+| editable| 文本框可输入| boolean| —| true |
+| clearable| 是否显示清除按钮| boolean| —| true |
+| size| 输入框尺寸| string| large, small, mini| — |
+| placeholder| 非范围选择时的占位内容| string| —| — |
+| start-placeholder| 范围选择时开始日期的占位内容| string| —| — |
+| end-placeholder| 范围选择时结束日期的占位内容| string| —| — |
+| time-arrow-control| 是否使用箭头进行时间选择| boolean| —| false |
+| type| 显示类型| string| year/month/date/week/ datetime/datetimerange/daterange| date |
+| format| 显示在输入框中的格式| string| 见日期格式| yyyy-MM-dd HH:mm:ss |
+| align| 对齐方式| string| left, center, right| left |
+| popper-class| DateTimePicker 下拉框的类名| string| —| — |
+| picker-options| 当前时间日期选择器特有的选项参考下表| object| —| {} |
+| range-separator| 选择范围时的分隔符| string| -| '-' |
+| default-value| 可选，选择器打开时默认显示的时间| Date| 可被new Date()解析| — |
+| default-time| 选中日期后的默认具体时刻| 非范围选择时：string / 范围选择时：string[]| 非范围选择时：形如12:00:00的字符串；范围选择时：数组，长度为 2，每项值为字符串，形如12:00:00，第一项指定开始日期的时刻，第二项指定结束日期的时刻。不指定会使用时刻 00:00:00| — |
+| value-format| 可选，绑定值的格式。不指定则绑定值为 Date 对象| string| 见日期格式| — |
+| name| 原生属性| string| —| — |
+| unlink-panels| 在范围选择器里取消两个日期面板之间的联动| boolean| —| false |
+| prefix-icon| 自定义头部图标的类名| string| —| el-icon-date |
+| clear-icon| 自定义清空图标的类名| string| —| el-icon-circle-close |
+#### Picker Options
+| 参数| 说明| 类型| 可选值| 默认值 |
+| :--- | :--- | :--- | :--- | :--- |
+| shortcuts| 设置快捷选项，需要传入 { text, onClick } 对象用法参考 demo 或下表| Object[]| —| — |
+| disabledDate| 设置禁用状态，参数为当前日期，要求返回 Boolean| Function| —| — |
+| cellClassName| 设置日期的 className| Function(Date)| —| — |
+| firstDayOfWeek| 周起始日| Number| 1 到 7| 7 |
+#### Shortcuts
+| 参数| 说明| 类型| 可选值| 默认值 |
+| :--- | :--- | :--- | :--- | :--- |
+| text| 标题文本| string| —| — |
+| onClick| 选中后的回调函数，参数是 vm，可通过触发 'pick' 事件设置选择器的值。例如 vm.$emit('pick', new Date())| function| —| — |
+#### Events
+| Event Name| Description| Parameters |
+| :--- | :--- | :--- |
+| change| 用户确认选定的值时触发| 组件绑定值。格式与绑定值一致，可受 value-format 控制 |
+| blur| 当 input 失去焦点时触发| 组件实例 |
+| focus| 当 input 获得焦点时触发| 组件实例 |
+#### Methods
+| 方法名| 说明| 参数 |
+| :--- | :--- | :--- |
+| focus| 使 input 获取焦点| — |
+#### Slots
+| Name| 说明 |
+| :--- | :--- |
+| range-separator| 自定义分隔符 |
+`,
   "el-switch": `#### [访问](https://element-plus.gitee.io/zh-CN/component/switch.html)
 #### 属性
 | 属性名| 说明| 类型| 可选值| 默认值 |

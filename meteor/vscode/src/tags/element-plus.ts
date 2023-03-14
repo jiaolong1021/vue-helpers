@@ -1400,6 +1400,390 @@ export default {
           "values": []
       }
   },
+  "el-time-select": {
+        "_self": {
+            "description": "用于选择或输入日期",
+            "text": ["<el-time-select\n\tv-model=\"$1\"\n\t:picker-options=\"${2:{start: '08:30',step: '00:15',end: '18:30'}}\"\n\tplaceholder=\"$3\">\n</el-time-select>"]
+        },
+        "v-model": {
+            "type": "attribute",
+            "description": "绑定值",
+            "values": []
+        },
+        "readonly": {
+            "type": "attribute",
+            "description": "完全只读",
+            "values": []
+        },
+        "disabled": {
+            "type": "attribute",
+            "description": "禁用",
+            "values": []
+        },
+        "editable": {
+            "type": "attribute",
+            "description": "文本框可输入",
+            "values": []
+        },
+        "clearable": {
+            "type": "attribute",
+            "description": "是否显示清除按钮",
+            "values": []
+        },
+        "size": {
+            "type": "attribute",
+            "description": "输入框尺寸",
+            "values": ["medium", "small", "mini"]
+        },
+        "placeholder": {
+            "type": "attribute",
+            "description": "非范围选择时的占位内容",
+            "values": []
+        },
+        "start-placeholder": {
+            "type": "attribute",
+            "description": "范围选择时开始日期的占位内容",
+            "values": []
+        },
+        "end-placeholder": {
+            "type": "attribute",
+            "description": "范围选择时开始日期的占位内容",
+            "values": []
+        },
+        "is-range": {
+            "type": "attribute",
+            "description": "是否为时间范围选择，仅对<el-time-picker>有效",
+            "values": []
+        },
+        "arrow-control": {
+            "type": "attribute",
+            "description": "是否使用箭头进行时间选择，仅对<el-time-picker>有效",
+            "values": []
+        },
+        "align": {
+            "type": "attribute",
+            "description": "对齐方式",
+            "values": ["left", "center", "right"]
+        },
+        "popper-class": {
+            "type": "attribute",
+            "description": "TimePicker 下拉框的类名",
+            "values": []
+        },
+        "picker-options": {
+            "type": "attribute",
+            "description": "当前时间日期选择器特有的选项参考下表",
+            "values": []
+        },
+        "range-separator": {
+            "type": "attribute",
+            "description": "选择范围时的分隔符",
+            "values": []
+        },
+        "value-format": {
+            "type": "attribute",
+            "description": "可选，仅TimePicker时可用，绑定值的格式。不指定则绑定值为 Date 对象",
+            "values": ["见日期格式"]
+        },
+        "default-value": {
+            "type": "attribute",
+            "description": "可选，选择器打开时默认显示的时间",
+            "values": ["可被new Date()解析(TimePicker)", "可选值(TimeSelect)"]
+        },
+        "name": {
+            "type": "attribute",
+            "description": "原生属性",
+            "values": []
+        },
+        "prefix-icon": {
+            "type": "attribute",
+            "description": "自定义头部图标的类名",
+            "values": []
+        },
+        "clear-icon": {
+            "type": "attribute",
+            "description": "自定义清空图标的类名",
+            "values": []
+        },
+        "change": {
+            "type": "method",
+            "description": "用户确认选定的值时触发",
+            "values": []
+        },
+        "blur": {
+            "type": "method",
+            "description": "当 input 失去焦点时触发",
+            "values": []
+        },
+        "focus": {
+            "type": "method",
+            "description": "当 input 获得焦点时触发",
+            "values": []
+        }
+    },
+    "el-time-picker": {
+        "_self": {
+            "description": "用于选择或输入日期",
+            "text": ["<el-time-picker\n\tv-model=\"$1\"\n\t:picker-options=\"${2:{ selectableRange: '18:30:00 - 20:30:00' }}\"\n\tplaceholder=\"$3\">\n</el-time-picker>"]
+        },
+        "v-model": {
+            "type": "attribute",
+            "description": "绑定值",
+            "values": []
+        },
+        "readonly": {
+            "type": "attribute",
+            "description": "完全只读",
+            "values": []
+        },
+        "disabled": {
+            "type": "attribute",
+            "description": "禁用",
+            "values": []
+        },
+        "editable": {
+            "type": "attribute",
+            "description": "文本框可输入",
+            "values": []
+        },
+        "clearable": {
+            "type": "attribute",
+            "description": "是否显示清除按钮",
+            "values": []
+        },
+        "size": {
+            "type": "attribute",
+            "description": "输入框尺寸",
+            "values": ["medium", "small", "mini"]
+        },
+        "placeholder": {
+            "type": "attribute",
+            "description": "非范围选择时的占位内容",
+            "values": []
+        },
+        "start-placeholder": {
+            "type": "attribute",
+            "description": "范围选择时开始日期的占位内容",
+            "values": []
+        },
+        "end-placeholder": {
+            "type": "attribute",
+            "description": "范围选择时开始日期的占位内容",
+            "values": []
+        },
+        "is-range": {
+            "type": "attribute",
+            "description": "是否为时间范围选择，仅对<el-time-picker>有效",
+            "values": []
+        },
+        "arrow-control": {
+            "type": "attribute",
+            "description": "是否使用箭头进行时间选择，仅对<el-time-picker>有效",
+            "values": []
+        },
+        "align": {
+            "type": "attribute",
+            "description": "对齐方式",
+            "values": ["left", "center", "right"]
+        },
+        "popper-class": {
+            "type": "attribute",
+            "description": "TimePicker 下拉框的类名",
+            "values": []
+        },
+        "picker-options": {
+            "type": "attribute",
+            "description": "当前时间日期选择器特有的选项参考下表",
+            "values": []
+        },
+        "range-separator": {
+            "type": "attribute",
+            "description": "选择范围时的分隔符",
+            "values": []
+        },
+        "value-format": {
+            "type": "attribute",
+            "description": "可选，仅TimePicker时可用，绑定值的格式。不指定则绑定值为 Date 对象",
+            "values": ["见日期格式"]
+        },
+        "default-value": {
+            "type": "attribute",
+            "description": "可选，选择器打开时默认显示的时间",
+            "values": ["可被new Date()解析(TimePicker)", "可选值(TimeSelect)"]
+        },
+        "name": {
+            "type": "attribute",
+            "description": "原生属性",
+            "values": []
+        },
+        "prefix-icon": {
+            "type": "attribute",
+            "description": "自定义头部图标的类名",
+            "values": []
+        },
+        "clear-icon": {
+            "type": "attribute",
+            "description": "自定义清空图标的类名",
+            "values": []
+        },
+        "change": {
+            "type": "method",
+            "description": "用户确认选定的值时触发",
+            "values": []
+        },
+        "blur": {
+            "type": "method",
+            "description": "当 input 失去焦点时触发",
+            "values": []
+        },
+        "focus": {
+            "type": "method",
+            "description": "当 input 获得焦点时触发",
+            "values": []
+        }
+    },
+    "el-date-picker": {
+        "_self": {
+            "description": "用于选择或输入日期",
+            "text": ["<el-date-picker v-model=\"$1\" type=\"datetime\" placeholder=\"${2:datetime}\"></el-date-picker>"]
+        },
+        "v-model": {
+            "type": "attribute",
+            "description": "绑定值",
+            "values": []
+        },
+        "readonly": {
+            "type": "attribute",
+            "description": "完全只读",
+            "values": []
+        },
+        "disabled": {
+            "type": "attribute",
+            "description": "禁用",
+            "values": []
+        },
+        "editable": {
+            "type": "attribute",
+            "description": "文本框可输入",
+            "values": []
+        },
+        "clearable": {
+            "type": "attribute",
+            "description": "是否显示清除按钮",
+            "values": []
+        },
+        "size": {
+            "type": "attribute",
+            "description": "输入框尺寸",
+            "values": ["large, small, mini"]
+        },
+        "placeholder": {
+            "type": "attribute",
+            "description": "非范围选择时的占位内容",
+            "values": []
+        },
+        "start-placeholder": {
+            "type": "attribute",
+            "description": "范围选择时开始日期的占位内容",
+            "values": []
+        },
+        "end-placeholder": {
+            "type": "attribute",
+            "description": "范围选择时结束日期的占位内容",
+            "values": []
+        },
+        "type": {
+            "type": "attribute",
+            "description": "显示类型",
+            "values": ["year", "month", "date", "dates", "week", "datetime", "datetimerange", "daterange", "monthrange"]
+        },
+        "format": {
+            "type": "attribute",
+            "description": "显示在输入框中的格式",
+            "values": ["见日期格式"]
+        },
+        "align": {
+            "type": "attribute",
+            "description": "对齐方式",
+            "values": ["left, center, right"]
+        },
+        "popper-class": {
+            "type": "attribute",
+            "description": "DatePicker 下拉框的类名",
+            "values": []
+        },
+        "picker-options": {
+            "type": "attribute",
+            "description": "当前时间日期选择器特有的选项参考下表",
+            "values": []
+        },
+        "range-separator": {
+            "type": "attribute",
+            "description": "选择范围时的分隔符",
+            "values": []
+        },
+        "default-value": {
+            "type": "attribute",
+            "description": "可选，选择器打开时默认显示的时间",
+            "values": ["可被new Date()解析"]
+        },
+        "default-time": {
+            "type": "attribute",
+            "description": "范围选择时选中日期所使用的当日内具体时刻",
+            "values": ["数组，长度为 2，每项值为字符串，形如12:00:00，第一项指定开始日期的时刻，第二项指定结束日期的时刻，不指定会使用时刻 00:00:00"]
+        },
+        "value-format": {
+            "type": "attribute",
+            "description": "可选，绑定值的格式。不指定则绑定值为 Date 对象",
+            "values": ["见日期格式"]
+        },
+        "name": {
+            "type": "attribute",
+            "description": "原生属性",
+            "values": []
+        },
+        "unlink-panels": {
+            "type": "attribute",
+            "description": "在范围选择器里取消两个日期面板之间的联动",
+            "values": []
+        },
+        "prefix-icon": {
+            "type": "attribute",
+            "description": "自定义头部图标的类名",
+            "values": []
+        },
+        "clear-icon": {
+            "type": "attribute",
+            "description": "自定义清空图标的类名",
+            "values": []
+        },
+        "validate-event": {
+            "type": "attribute",
+            "description": "输入时是否触发表单的校验",
+            "values": []
+        },
+        "change": {
+            "type": "method",
+            "description": "用户确认选定的值时触发",
+            "values": []
+        },
+        "blur": {
+            "type": "method",
+            "description": "当 input 失去焦点时触发",
+            "values": []
+        },
+        "focus": {
+            "type": "method",
+            "description": "当 input 获得焦点时触发",
+            "values": []
+        }
+    },
+    "el-date-picker:range": {
+        "_self": {
+            "description": "用于选择或输入日期",
+            "text": ["<el-date-picker v-model=\"$1\" type=\"datetime\" placeholder=\"${2:datetime}\"></el-date-picker>"]
+        }
+    },
   "el-switch": {
       "_self": {
           "description": "表示两种相互对立的状态间的切换，多用于触发「开/关」。",
@@ -4171,30 +4555,6 @@ export default {
       "_self": {
           "description": "",
           "text": ["<el-cascader-panel :options=\"options\"></el-cascader-panel>"]
-      }
-  },
-  "el-time-select": {
-      "_self": {
-          "description": "",
-          "text": ["<el-time-select\n\tv-model=\"$1\"\n\t:picker-options=\"${2:{start: '08:30',step: '00:15',end: '18:30'}}\"\n\tplaceholder=\"$3\">\n</el-time-select>"]
-      }
-  },
-  "el-time-picker": {
-      "_self": {
-          "description": "",
-          "text": ["<el-time-picker\n\tv-model=\"$1\"\n\t:picker-options=\"${2:{ selectableRange: '18:30:00 - 20:30:00' }}\"\n\tplaceholder=\"$3\">\n</el-time-picker>"]
-      }
-  },
-  "el-date-picker": {
-      "_self": {
-          "description": "",
-          "text": ["<el-date-picker v-model=\"$1\" type=\"date\" placeholder=\"${2:date}\"></el-date-picker>"]
-      }
-  },
-  "el-date-picker:range": {
-      "_self": {
-          "description": "",
-          "text": ["<el-date-picker\n\tv-model=\"$1\"\n\ttype=\"daterange\"\n\trange-separator=\"至\"\n\tstart-placeholder=\"开始日期\"\n\tend-placeholder=\"结束日期\">\n</el-date-picker>"]
       }
   },
   "el-upload:avatar": {
