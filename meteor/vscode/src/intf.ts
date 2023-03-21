@@ -209,7 +209,7 @@ export class IntfProvider {
         let variable = configFile.replace(/^(var|const)\s*/gi, '').replace(/\s+.*/gi, '')
         baseURL = baseURL + variable + '.' + field + '.' + getSwaggerKey(url)
       }
-      fs.writeFileSync(apiFilePath, `import request from \'${filePath}'\nconst baseURL = ${baseURL ? baseURL : "''"}\n`);
+      fs.writeFileSync(apiFilePath, `import request from \'${filePath}'\nconst baseUrl = ${baseURL ? baseURL : "''"}\n`);
     }
     let apiText = fs.readFileSync(apiFilePath, 'utf-8')
     // 存在
@@ -218,7 +218,7 @@ export class IntfProvider {
     }
     let func = `export function ${apiName}(config${this.fileType === 'ts' ? ': any' : ''}) {
   return request({
-    url: \`\${baseURL}${api.reqPath.replace(/{/gi, '${config.path.')}\`,
+    url: \`\${baseUrl}${api.reqPath.replace(/{/gi, '${config.path.')}\`,
     method: '${api.method}',
     ...config
   })
@@ -490,16 +490,27 @@ export class IntfProvider {
             }
             if (param.schema) {
               if (param.schema.originalRef) {
-                params += `${this.tabSpace}${this.tabSpace}${param.name}: {},\n`
+                let ref = param.schema.originalRef
+                if (this.definitions[url][ref] && this.definitions[url][ref] && this.definitions[url][ref].properties) {
+                  for (const key in this.definitions[url][ref].properties) {
+                    const paramKey = this.definitions[url][ref].properties[key]
+                    if (!params) {
+                      params += `${this.tabSpace}data: {\n`
+                    }
+                    params += `${this.tabSpace}${this.tabSpace}${key}: ${this.paramsDefault[paramKey.type] || "''"},\n`
+                  }
+                } else {
+                  params += `${this.tabSpace}${this.tabSpace}${param.name}: '',\n`
+                }
               } else if (param.schema.$ref) {
                 let ref = param.schema.$ref.replace(/.*\//gi, '')
                 if (this.definitions[url][ref] && this.definitions[url][ref] && this.definitions[url][ref].properties) {
                   for (const key in this.definitions[url][ref].properties) {
-                    const param = this.definitions[url][ref].properties[key]
+                    const paramKey = this.definitions[url][ref].properties[key]
                     if (!params) {
                       params += `${this.tabSpace}data: {\n`
                     }
-                    params += `${this.tabSpace}${this.tabSpace}${key}: ${this.paramsDefault[param.type] || "''"},\n`
+                    params += `${this.tabSpace}${this.tabSpace}${key}: ${this.paramsDefault[paramKey.type] || "''"},\n`
                   }
                 }
               } else if (param.schema.type === 'array') {

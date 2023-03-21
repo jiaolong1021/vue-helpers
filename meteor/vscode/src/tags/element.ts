@@ -3607,7 +3607,7 @@ placeholder="请输入内容"
     "el-dialog": {
         "_self": {
             "description": "在保留当前页面状态的情况下，告知用户并承载相关操作。",
-            "text": ["<el-dialog\n\ttitle=\"\"\n\tv-model=\"${1:visible}\"\n\twidth=\"${2:width}\">\n\t<el-form :model=\"form\">\n\t\t<el-form-item label=\"\" :label-width=\"\">\n\t\t\t<el-input v-model=\"\"></el-input>\n\t\t</el-form-item>\n\t</el-form>\n\t<template #footer>\n\t\t<el-button @click=\"visible = false\">取 消</el-button>\n\t\t<el-button type=\"primary\" @click=\"visible = false\">确 定</el-button>\n\t</template>\n</el-dialog>"]
+            "text": ["<el-dialog\n\ttitle=\"\"\n\:visible.sync=\"${1:visible}\"\n\twidth=\"${2:width}\">\n\t<el-form :model=\"form\">\n\t\t<el-form-item label=\"\" :label-width=\"\">\n\t\t\t<el-input v-model=\"\"></el-input>\n\t\t</el-form-item>\n\t</el-form>\n\t<template slot=\"footer\">\n\t\t<el-button @click=\"visible = false\">取 消</el-button>\n\t\t<el-button type=\"primary\" @click=\"visible = false\">确 定</el-button>\n\t</template>\n</el-dialog>"]
         },
         "visible": {
             "type": "attribute",
@@ -4453,7 +4453,7 @@ placeholder="请输入内容"
     "el-popconfirm": {
         "_self": {
             "description": "点击元素，弹出气泡确认框。",
-            "text": ["<el-popconfirm confirm-button-text=\"确定\" cancel-button-text=\"取消\" title=\"确定删除?\" icon=\"\" @confirm=\"confirm\" @cancel=\"cancel\">\n\t<template #reference>\n\t\t<el-button type=\"danger\" text><el-icon><Delete></Delete></el-icon> 删除</el-button>\n\t</template>\n</el-popconfirm>"]
+            "text": ["<el-popconfirm confirm-button-text=\"确定\" cancel-button-text=\"取消\" title=\"确定删除?\" icon=\"\" @confirm=\"confirm\" @cancel=\"cancel\">\n\t<el-button slot=\"reference\" type=\"text\" size=\"small\">删除</el-button>\n</el-popconfirm>"]
         },
         "title": {
             "type": "attribute",

@@ -470,6 +470,7 @@ export class ComponentProvider {
     switch (category) {
       case 'vue2':
       case 'vue3':
+      case 'common':
         this.codeBlockFillVue(pages, category);
         break;
       case 'miniapp':
@@ -1247,6 +1248,8 @@ ${space}},\n`;
   }
 
   public setSuggestions() {
+    this.pageSuggestions = []
+    this.suggestions = []
     for (const key in this.pageTemplateList) {
       const component = this.pageTemplateList[key]
       if (this.category === component.category || component.category === 'common') {
@@ -1260,9 +1263,9 @@ ${space}},\n`;
         let completionItem = new CompletionItem(key)
         completionItem.label = key
         completionItem.sortText = `000${key}`
-        completionItem.insertText = `meteor [${component.category}]`
+        completionItem.insertText = ''
         completionItem.kind = CompletionItemKind.Snippet
-        completionItem.detail = 'meteor'
+        completionItem.detail = `meteor [${component.category}]`
         completionItem.documentation = new MarkdownString(documentation)
         completionItem.command = { command: 'meteor.componentCompetion', title: 'completions', arguments: [{
           name: key
