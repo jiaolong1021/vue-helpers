@@ -222,7 +222,8 @@ export class ExplorerProvider {
       let start = false
       let space = ''
       let startReg = new RegExp(`${field}\\s?:\\s+{`, 'gi')
-      for (let i = 0; i < configFileLines.length; i++) {
+      let countLine = configFileLines.length
+      for (let i = 0; i < countLine; i++) {
         const line = configFileLines[i];
         if (startReg.test(line)) {
           start = true
@@ -255,7 +256,9 @@ export class ExplorerProvider {
             }
           }
         }
-        text += line + '\n'
+        if (i < countLine - 1) {
+          text += line + '\n'
+        }
       }
       fs.writeFileSync(path.join(this.projectRootPath, swaggerPath), text, 'utf-8')
     }

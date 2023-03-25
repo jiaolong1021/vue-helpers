@@ -1254,11 +1254,11 @@ ${space}},\n`;
       const component = this.pageTemplateList[key]
       if (this.category === component.category || component.category === 'common') {
         let documentation = ''
-        if (component.remark) {
-          documentation += `##### ${component.remark} \n  `
-        }
         if (component.avatar) {
-          documentation += `![meteor](${component.avatar})`
+          documentation += `![meteor](${component.avatar}) \n  `
+        }
+        if (component.remark) {
+          documentation += `${component.remark}`
         }
         let completionItem = new CompletionItem(key)
         completionItem.label = key

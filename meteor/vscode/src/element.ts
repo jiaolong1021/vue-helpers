@@ -91,7 +91,6 @@ class ElementCompletionItemProvider implements CompletionItemProvider {
     let attr = this.getPreAttr();
     let word = getCurrentWord(document, position)
     let hasSquareQuote = document.lineAt(position.line).text.includes('<')
-    console.log(tag, attr, word)
     if (tag && attr && this.isAttrValueStart(tag, attr)) {
       // 属性值开始
       return this.getAttrValueSuggestion(tag.text, attr);

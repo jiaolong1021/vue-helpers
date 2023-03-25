@@ -134,52 +134,68 @@ export class IntfProvider {
   public generateImport(apiName: string, url: string) {
     let editor = window.activeTextEditor;
     if (!editor) { return; }
-    commands.executeCommand('vscode.executeDocumentSymbolProvider', editor.document.uri).then(async (symbols: any) => {
-      // 拼装插入内容位置、内容
-      // let doc: any[] = []
-      if (!symbols) {
-        return
+    let count = editor.document.lineCount
+    let insertLine = 0
+    let insertCharacter = 0
+    let filePath = this.getFullPath(this.api[url][apiName].filePath)
+    let insertText = `import { ${apiName} } from '${filePath}'\n`
+    let line = 0
+    let findPosition = false
+    let languageId = editor.document.languageId
+    let deep = 6
+    let deepNum = 0
+    let findImport = false
+    let isExist = false
+
+    while (!findPosition) {
+      let text = editor.document.lineAt(line).text.trim()
+
+      // 查找规则：如果是vue，则先找script位置
+      if (languageId === 'vue') {
+        if (text.includes('<script ')) {
+          insertLine = line
+        }
       }
-      symbols.forEach((symbolItem: any) => {
-        // 查询import插入位置
-        if (symbolItem.name.includes('script')) {
-          let symbolLine = symbolItem.range.c.c
-          if (symbolItem.children.length > 0) {
-            let currentLine = symbolItem.children[0].range.c.c
-            let insertLine = -1
-            let insertCharacter = 0
-            let filePath = this.getFullPath(this.api[url][apiName].filePath)
-            let insertText = ''
-            let isExist = false
-            if (currentLine > 2) {
-              while(currentLine > symbolLine) {
-                --currentLine
-                let text = editor?.document.lineAt(currentLine).text.trim()
-                if (text?.includes(filePath)) {
-                  insertLine = currentLine
-                  if (!new RegExp(`{.*${apiName}.*}`, 'gi').test(text)) {
-                    insertCharacter = text.replace(/\s*}.*/gi, '').length
-                    insertText = `, ${apiName}`
-                  } else {
-                    isExist = true
-                  }
-                } else {
-                  if (text !== '' && insertLine === -1) {
-                    insertLine = currentLine + 1
-                    insertText = `import { ${apiName} } from '${filePath}'\n`
-                  }
-                }
-              }
-            }
-            if (!isExist) {
-              editor?.edit((editBuilder: any) => {
-                editBuilder.insert(new Position(insertLine, insertCharacter), insertText);
-              })
-            }
+
+      // 已有引入
+      if (text?.includes(`'${filePath}'`) || text?.includes(`"${filePath}"`) || text?.includes(`${filePath}.`)) {
+        insertLine = line
+        if (!new RegExp(`{.*${apiName}.*}`, 'gi').test(text)) {
+          insertCharacter = text.replace(/\s*}.*/gi, '').length
+          insertText = `, ${apiName}`
+          findPosition = true
+        } else {
+          isExist = true
+        }
+      }
+
+      // 查找已有import，并深入6行
+      if(text.startsWith('import ')) {
+        findImport = true
+      }
+
+      if (findImport) {
+        if (text.startsWith('import ') || text.includes(' from ')) {
+          deepNum = 0
+          insertLine = line
+        } else {
+          deepNum++
+          if (deepNum >= deep) {
+            findPosition = true
           }
         }
+      }
+
+      line++
+      if (line >= count) {
+        findPosition = true
+      }
+    }
+    if (!isExist) {
+      editor?.edit((editBuilder: any) => {
+        editBuilder.insert(new Position(insertLine + 1, insertCharacter), insertText);
       })
-    })
+    }
   }
 
   // 获取全路径
@@ -209,16 +225,17 @@ export class IntfProvider {
         let variable = configFile.replace(/^(var|const)\s*/gi, '').replace(/\s+.*/gi, '')
         baseURL = baseURL + variable + '.' + field + '.' + getSwaggerKey(url)
       }
-      fs.writeFileSync(apiFilePath, `import request from \'${filePath}'\nconst baseUrl = ${baseURL ? baseURL : "''"}\n`);
+      fs.writeFileSync(apiFilePath, `import request from \'${filePath}'\nconst baseURL = ${baseURL ? baseURL : "''"}\n`);
     }
     let apiText = fs.readFileSync(apiFilePath, 'utf-8')
+
     // 存在
     if (new RegExp(`export\\s*function\\s*${apiName}\\(`).test(apiText)) {
       return
     }
     let func = `export function ${apiName}(config${this.fileType === 'ts' ? ': any' : ''}) {
   return request({
-    url: \`\${baseUrl}${api.reqPath.replace(/{/gi, '${config.path.')}\`,
+    url: \`\${baseURL}${api.reqPath.replace(/{/gi, '${config.path.')}\`,
     method: '${api.method}',
     ...config
   })
@@ -460,6 +477,7 @@ export class IntfProvider {
               }
               append += `${this.tabSpace}${this.tabSpace}${key}: ${this.paramsDefault[param.type] || "''"},\n`
             }
+            append += `${this.tabSpace}},\n`
           }
         }
         break;    
