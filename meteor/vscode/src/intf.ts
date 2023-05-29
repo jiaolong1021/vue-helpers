@@ -148,7 +148,8 @@ export class IntfProvider {
     let isExist = false
 
     while (!findPosition) {
-      let text = editor.document.lineAt(line).text.trim()
+      let textOrigin = editor.document.lineAt(line).text
+      let text = textOrigin.trim()
 
       // 查找规则：如果是vue，则先找script位置
       if (languageId === 'vue') {
@@ -164,6 +165,7 @@ export class IntfProvider {
           insertCharacter = text.replace(/\s*}.*/gi, '').length
           insertText = `, ${apiName}`
           findPosition = true
+          line--
         } else {
           isExist = true
         }
@@ -372,7 +374,7 @@ export class IntfProvider {
               // 参数排序
               let params: any = {}
               reqBody.parameters.forEach((param: any) => {
-                if (param.in) {
+                if (param.in && !(param.in === 'header' && param.name === 'token')) {
                   if (params[param.in]) {
                     params[param.in].push(param)
                   } else {
@@ -496,6 +498,7 @@ export class IntfProvider {
     let params = ''
     let position = 'append'
     let paramsKey = this.paramsKeys[key]
+    let paramsType = 'json'
     if (paramsKey) {
       paramList.forEach(param => {
         switch (key) {
@@ -532,14 +535,28 @@ export class IntfProvider {
                   }
                 }
               } else if (param.schema.type === 'array') {
-                if (key === 'query') {
-                  // query中数组格式参数需要序列化
-                  let serializer = `${this.tabSpace}paramsSerializer: params => {\n`
-                  serializer += `${this.tabSpace}${this.tabSpace}return qs.stringify(params, { indices: false })\n`
-                  serializer += `${this.tabSpace}},\n`
-                  params = serializer + params
+                if (key === 'body') {
+                  params = `${this.tabSpace}${paramsKey}: [\n`
+                  paramsType = 'array'
+                  if (param.schema.items && param.schema.items.$ref) {
+                    let ref = param.schema.items.$ref.replace(/.*\//gi, '')
+                    if (this.definitions[url][ref] && this.definitions[url][ref] && this.definitions[url][ref].properties) {
+                      for (const key in this.definitions[url][ref].properties) {
+                        const paramKey = this.definitions[url][ref].properties[key]
+                        params += `${this.tabSpace}${this.tabSpace}${key}: ${this.paramsDefault[paramKey.type] || "''"},\n`
+                      }
+                    }
+                  }
+                } else {
+                  if (key === 'query') {
+                    // query中数组格式参数需要序列化
+                    let serializer = `${this.tabSpace}paramsSerializer: params => {\n`
+                    serializer += `${this.tabSpace}${this.tabSpace}return qs.stringify(params, { indices: false })\n`
+                    serializer += `${this.tabSpace}},\n`
+                    params = serializer + params
+                  }
+                  params += `${this.tabSpace}${this.tabSpace}${param.name}: [],\n`
                 }
-                params += `${this.tabSpace}${this.tabSpace}${param.name}: [],\n`
               } else {
                 params += `${this.tabSpace}${this.tabSpace}${param.name}: '',\n`
               }
@@ -560,7 +577,11 @@ export class IntfProvider {
       if (key === 'formData') {
         position = 'top'
       } else {
-        params += `${this.tabSpace}},\n`
+        if (paramsType === 'json') {
+          params += `${this.tabSpace}},\n`
+        } else if (paramsType === 'array') {
+          params += `${this.tabSpace}],\n`
+        }
       }
     }
     return {

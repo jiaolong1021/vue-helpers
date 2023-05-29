@@ -3713,7 +3713,7 @@ placeholder="请输入内容"
     "el-dialog:form": {
         "_self": {
             "description": "在保留当前页面状态的情况下，告知用户并承载相关操作。",
-            "text": ["<el-dialog\n\ttitle=\"\"\n\tv-model=\"${1:visible}\"\n\twidth=\"${2:width}\">\n\t<el-form :model=\"form\">\n\t\t<el-form-item label=\"\" :label-width=\"\">\n\t\t\t<el-input v-model=\"\"></el-input>\n\t\t</el-form-item>\n\t</el-form>\n\t<template #footer>\n\t\t<el-button @click=\"visible = false\">取 消</el-button>\n\t\t<el-button type=\"primary\" @click=\"visible = false\">确 定</el-button>\n\t</template>\n</el-dialog>"]
+            "text": ["<el-dialog\n\ttitle=\"\"\n\tv-model=\"${1:visible}\"\n\twidth=\"${2:width}\">\n\t<el-form :model=\"form\" :label-width=\"\">\n\t\t<el-form-item label=\"\">\n\t\t\t<el-input v-model=\"\"></el-input>\n\t\t</el-form-item>\n\t</el-form>\n\t<template #footer>\n\t\t<el-button @click=\"visible = false\">取 消</el-button>\n\t\t<el-button type=\"primary\" @click=\"visible = false\">确 定</el-button>\n\t</template>\n</el-dialog>"]
         }
     },
     "el-dropdown": {

@@ -20,7 +20,8 @@ export const config = `{
       "jenkinsUsername": "admin",
       "jenkinsPassword": "U2FsdGVkX19cxXE+vCfFmB1xEGJhDNwEEn1I+j5+XPs=",
       "jenkinsView": "大前端",
-      "jenkinsBaseProject": "zlst-ele-templete"
+      "jenkinsBaseJob": "zlst-ele-templete",
+      "jenkinsJob": ""
     },
     "deploy": {
       "cloudUrl": "http://cloud.cs2025.com",
@@ -40,7 +41,8 @@ export const config = `{
       "jenkinsUsername": "admin",
       "jenkinsPassword": "U2FsdGVkX19cxXE+vCfFmB1xEGJhDNwEEn1I+j5+XPs=",
       "jenkinsView": "大前端",
-      "jenkinsBaseProject": "zlst-ele-templete"
+      "jenkinsBaseJob": "zlst-ele-templete",
+      "jenkinsJob": ""
     },
     "deploy": {
       "cloudUrl": "http://cloud.cs2025.com",
@@ -60,7 +62,8 @@ export const config = `{
       "jenkinsUsername": "admin",
       "jenkinsPassword": "U2FsdGVkX19cxXE+vCfFmB1xEGJhDNwEEn1I+j5+XPs=",
       "jenkinsView": "大前端",
-      "jenkinsBaseProject": "zlst-ele-templete"
+      "jenkinsBaseJob": "zlst-ele-templete",
+      "jenkinsJob": ""
     },
     "deploy": {
       "cloudUrl": "http://cloud.cs2025.com",

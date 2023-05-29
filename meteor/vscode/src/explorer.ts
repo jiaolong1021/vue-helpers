@@ -423,8 +423,9 @@ class JsonHoverProvider implements HoverProvider {
     jenkinsUrl: 'jenkins访问地址',
     jenkinsUsername: 'jenkins登录账号',
     jenkinsPassword: 'jenkins登录密码',
-    jenkinsView: 'jenkins放置视图',
-    jenkinsBaseProject: 'jenkins复制基本工程',
+    jenkinsView: 'jenkins放置视图,可不填，主要用于新建',
+    jenkinsBaseJob: 'jenkins复制Job',
+    jenkinsJob: 'jenkins Job名称，默认为工程名称，可修改',
     cloudUrl: '容器云访问地址',
     cloudUsername: '容器云登录账号',
     cloudPassword: '容器云登录密码',
@@ -530,8 +531,11 @@ class JSONCompletionItemProvider implements CompletionItemProvider {
             label: 'jenkinsPassword',
             documentation: 'jenkins登录密码'
           }, {
-            label: 'jenkinsBaseProject',
-            documentation: 'jenkins复制基本工程'
+            label: 'jenkinsBaseJob',
+            documentation: 'jenkins复制Job'
+          }, {
+            label: 'jenkinsJob',
+            documentation: 'jenkins Job名称'
           }, {
             label: 'jenkinsView',
             documentation: 'jenkins放置视图'

@@ -32,7 +32,8 @@ export class PkgProvider {
       }
     }))
     this.context.subscriptions.push(commands.registerCommand('meteor.packageVisit', () => {
-      this.explerer.open(this.explerer.config[this.explerer.activeEnv].package.jenkinsUrl + '/job/' + this.explerer.project)
+      let pkgConfig = this.explerer.config[this.explerer.activeEnv].package
+      this.explerer.open(this.explerer.config[this.explerer.activeEnv].package.jenkinsUrl + '/job/' + (pkgConfig.jenkinsJob || this.explerer.project))
     }))
     this.context.subscriptions.push(commands.registerCommand('meteor.packageRun', () => {
       this.run('build', true)
@@ -94,17 +95,17 @@ export class PkgProvider {
 
       if (type === 'build') {
         // 进入build页面
-        await this.page.goto(`${pkgConfig.jenkinsUrl}/job/${project}/build?delay=0sec`)
+        await this.page.goto(`${pkgConfig.jenkinsUrl}/job/${pkgConfig.jenkinsJob || project}/build?delay=0sec`)
         try {
           const h2Text = await this.page.$eval('body > h2', (node: any) => node.innerText)
           if (h2Text === 'HTTP ERROR 404 Not Found') {
-            window.showInformationMessage(`job: ${project}不存在，正在新建...`)
+            window.showInformationMessage(`job: ${pkgConfig.jenkinsJob || project}不存在，正在新建...`)
             // 新建job
-            await this.page.goto(`${pkgConfig.jenkinsUrl}/view/${pkgConfig.jenkinsView}/newJob`, {
+            await this.page.goto(`${pkgConfig.jenkinsUrl}/view/${pkgConfig.jenkinsView || 'all'}/newJob`, {
               waitUntil: 'networkidle0'
             })
             await page.type('#name', project)
-            await page.type('#from', pkgConfig.jenkinsBaseProject)
+            await page.type('#from', pkgConfig.jenkinsBaseJob)
             await Promise.all([
               page.waitForNavigation({}),
               page.click('#ok-button', {}),
@@ -122,8 +123,8 @@ export class PkgProvider {
                   page.waitForNavigation({}),
                   page.click('[type="submit"]', {}),
                 ]);
-                await this.page.goto(`${pkgConfig.jenkinsUrl}/job/${project}/build?delay=0sec`)
-                window.showInformationMessage(`job: ${project}新建成功...`)
+                await this.page.goto(`${pkgConfig.jenkinsUrl}/job/${pkgConfig.jenkinsJob || project}/build?delay=0sec`)
+                window.showInformationMessage(`job: ${pkgConfig.jenkinsJob || project}新建成功...`)
               }
             }
           }
@@ -172,10 +173,10 @@ export class PkgProvider {
           execa('git', ['push', 'origin', version], { cwd: this.explerer.projectRootPath })
           window.showInformationMessage(`开始打包,仓库已打标签[${version}], 3s后可尝试获取镜像地址...`)
         } else {
-          window.showInformationMessage(`[前往设置分支](${pkgConfig.jenkinsUrl}/job/${project}/configure)`)
+          window.showInformationMessage(`[前往设置分支](${pkgConfig.jenkinsUrl}/job/${pkgConfig.jenkinsJob || project}/configure)`)
         }
       } else {
-        await this.page.goto(`${pkgConfig.jenkinsUrl}/job/${project}`)
+        await this.page.goto(`${pkgConfig.jenkinsUrl}/job/${pkgConfig.jenkinsJob || project}`)
         const statusList = await this.page.$$eval('#buildHistory .single-line', (els: any) => {
           var ret: any[] = []
           els.forEach((el: any) => {
@@ -195,10 +196,10 @@ export class PkgProvider {
         if (statusList.length > 0) {
           let status = statusList[0]
           if (status.status === 'fail') {
-            window.showInformationMessage(`最新编译失败, [查看失败原因](${pkgConfig.jenkinsUrl}/job/${project})`)
+            window.showInformationMessage(`最新编译失败, [查看失败原因](${pkgConfig.jenkinsUrl}/job/${pkgConfig.jenkinsJob || project})`)
           } else {
             let version = status.innerText.replace(/#/gi, '')
-            await this.page.goto(`${pkgConfig.jenkinsUrl}/job/${project}/${version}/console`)
+            await this.page.goto(`${pkgConfig.jenkinsUrl}/job/${pkgConfig.jenkinsJob || project}/${version}/console`)
             const out = await this.page.$eval('.console-output', (el: any) => {
               return el.innerText
             })
