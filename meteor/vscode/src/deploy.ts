@@ -9,9 +9,11 @@ interface DeployConfig {
   cloudUrl: string,
   cloudUsername: string,
   cloudPassword: string,
-  cloudeEnv: string,
-  cloudeGroup: string,
-  cloudeAccess: string,
+  cloudEnv: string,
+  cloudGroup: string,
+  cloudService: string,
+  cloudConfig: string,
+  cloudAccess: string,
 }
 
 export class DeployProvider {
@@ -22,9 +24,11 @@ export class DeployProvider {
     cloudUrl: '',
     cloudUsername: '',
     cloudPassword: '',
-    cloudeEnv: '',
-    cloudeGroup: '',
-    cloudeAccess: '',
+    cloudEnv: '',
+    cloudGroup: '',
+    cloudService: '',
+    cloudConfig: '',
+    cloudAccess: '',
   };
   public serviceGroupList: any[] = []
   public envList: any[] = []
@@ -52,8 +56,8 @@ export class DeployProvider {
     }))
     this.context.subscriptions.push(commands.registerCommand('meteor.deployVisit', () => {
       this.getConfig()
-      if (this.config.cloudeEnv) {
-        let envs = this.config.cloudeEnv.split(',')
+      if (this.config.cloudEnv) {
+        let envs = this.config.cloudEnv.split(',')
         if (envs.length === 2) {
           this.explorer.open(`${this.config.cloudUrl}/home/environment/${envs[1]}/info`)
         } else {
@@ -87,17 +91,36 @@ export class DeployProvider {
     if (!this.config.cloudPassword) {
       return window.showInformationMessage('请输入容器云密码')
     }
-    if (!this.config.cloudeEnv) {
+    if (!this.config.cloudEnv) {
       return window.showInformationMessage('请输入容器云环境')
     }
     let envId = ''
-    let envs = this.config.cloudeEnv.split(',')
+    let envs = this.config.cloudEnv.split(',')
     let project = this.explorer.project
+    let service = this.config.cloudService || project
+    let configMaps = this.config.cloudConfig || project
     let configRootPath = path.join(this.explorer.projectRootPath, this.explorer.config.rootPath.config, this.explorer.activeEnv)
     if (envs.length === 2) {
       envId = envs[1]
     } else {
       envId = envs[0]
+    }
+
+    const serviceConfigRes = await this.explorer.fetch({
+      url: `${this.config.cloudUrl}/api/service/info?environmentId=${envId}&serviceId=${this.config.cloudService}`,
+      headers: {
+        token: this.token
+      }
+    })
+    let conf: any[] = []
+    let configList: string[] = []
+    if (serviceConfigRes.data.data && serviceConfigRes.data.data.configMapParamVos) {
+      serviceConfigRes.data.data.configMapParamVos.forEach((config: any) => {
+        // 排除nginx相关配置
+        if (!config.configMapName.includes('nginx')) {
+          configList.push(config.configMapName)
+        }
+      })
     }
 
     const configRes = await this.explorer.fetch({
@@ -106,22 +129,25 @@ export class DeployProvider {
         token: this.token
       }
     })
-    let conf: any = null
     configRes.data.data.forEach((config: any) => {
-      if (config.id === project) {
-        conf = config
+      if (configList.includes(config.id)) {
+        conf.push(config)
       }
-    })
+    });
+
     if (opt === 'download') {
-      if (conf) {
-        for (const key in conf.data) {
-          fs.writeFileSync(path.join(configRootPath, key), conf.data[key])
+      if (conf.length > 0) {
+        for (let i = 0; i < conf.length; i++) {
+          const confItem = conf[i];
+          for (const key in confItem.data) {
+            fs.writeFileSync(path.join(configRootPath, key), confItem.data[key])
+          }
         }
         window.showInformationMessage('下载配置集成功')
       }
     } else {
       let configData = {
-        id: project,
+        id: service,
         description: '',
         environmentId: envId,
         data: {} as any
@@ -132,17 +158,21 @@ export class DeployProvider {
           configData.data[fileName] = fs.readFileSync(path.join(configRootPath, fileName), 'utf-8')
         });
       }
-      if (conf) {
-        // 修改
-        conf.data = configData.data
-        await this.explorer.fetch({
-          url: `${this.config.cloudUrl}/api/environments/${envId}/configmaps/${project}`,
-          method: 'put',
-          data: conf,
-          headers: {
-            token: this.token
-          }
-        })
+      if (conf.length > 0) {
+        // 修改，只支持一个配置更新
+        let updateConf: any = {}
+        if (conf.length === 1) {
+          updateConf = conf[0]
+          updateConf.data = configData.data
+          await this.explorer.fetch({
+            url: `${this.config.cloudUrl}/api/environments/${envId}/configmaps/${configMaps}`,
+            method: 'put',
+            data: updateConf,
+            headers: {
+              token: this.token
+            }
+          })
+        }
       } else {
         // 新增
         await this.explorer.fetch({
@@ -155,12 +185,12 @@ export class DeployProvider {
         })
       }
       let groupId = ''
-      let groups = this.config.cloudeGroup.split(',')
+      let groups = this.config.cloudGroup.split(',')
       if (groups.length === 2) {
         groupId = groups[1]
       }
       this.explorer.fetch({
-        url: `${this.config.cloudUrl}/api/environments/${envId}/groups/${groupId}/services/${project}/reboot?deploymentName=${project}`,
+        url: `${this.config.cloudUrl}/api/environments/${envId}/groups/${groupId}/services/${service}/reboot?deploymentName=${service}`,
         method: 'DELETE',
         headers: {
           token: this.token
@@ -181,18 +211,19 @@ export class DeployProvider {
     if (!this.config.cloudPassword) {
       return window.showInformationMessage('请输入容器云密码')
     }
-    if (!this.config.cloudeEnv) {
+    if (!this.config.cloudEnv) {
       return window.showInformationMessage('请输入容器云环境')
     }
-    if (!this.config.cloudeGroup) {
+    if (!this.config.cloudGroup) {
       return window.showInformationMessage('请输入容器云服务组')
     }
-    if (!this.config.cloudeAccess) {
+    if (!this.config.cloudAccess) {
       return window.showInformationMessage('请输入容器云访问权')
     }
     let envId = ''
     let project = this.explorer.project
-    let envs = this.config.cloudeEnv.split(',')
+    let service = this.config.cloudService || project
+    let envs = this.config.cloudEnv.split(',')
     if (envs.length === 2) {
       envId = envs[1]
     } else {
@@ -203,7 +234,7 @@ export class DeployProvider {
       method: 'get',
       params: {
         environmentId: envId,
-        serviceId: project
+        serviceId: service
       },
       headers: {
         token: this.token
@@ -239,25 +270,26 @@ export class DeployProvider {
     if (!this.config.cloudPassword) {
       return window.showInformationMessage('请输入容器云密码')
     }
-    if (!this.config.cloudeEnv) {
+    if (!this.config.cloudEnv) {
       return window.showInformationMessage('请输入容器云环境')
     }
-    if (!this.config.cloudeGroup) {
+    if (!this.config.cloudGroup) {
       return window.showInformationMessage('请输入容器云服务组')
     }
-    if (!this.config.cloudeAccess) {
+    if (!this.config.cloudAccess) {
       return window.showInformationMessage('请输入容器云访问权')
     }
     let envId = ''
     let groupId = ''
     let project = this.explorer.project
-    let envs = this.config.cloudeEnv.split(',')
+    let service = this.config.cloudService || project
+    let envs = this.config.cloudEnv.split(',')
     if (envs.length === 2) {
       envId = envs[1]
     } else {
       envId = envs[0]
     }
-    let groups = this.config.cloudeGroup.split(',')
+    let groups = this.config.cloudGroup.split(',')
     if (groups.length === 2) {
       groupId = groups[1]
     } else {
@@ -277,18 +309,19 @@ export class DeployProvider {
       groupId = groupRes.data.data.id
     }
     // 查询配置集是否存在
-    const configRes = await this.explorer.fetch({
-      url: `${this.config.cloudUrl}/api/environments/${envId}/configmaps`,
+    let isExistConfig = false
+    // 获取服务配置集
+    const serviceConfigRes = await this.explorer.fetch({
+      url: `${this.config.cloudUrl}/api/service/info?environmentId=${envId}&serviceId=${this.config.cloudService}`,
       headers: {
         token: this.token
       }
     })
-    let isExistConfig = false
-    configRes.data.data.forEach((config: any) => {
-      if (config.id === project) {
-        isExistConfig = true
-      }
-    });
+    
+    if (serviceConfigRes.data.data && serviceConfigRes.data.data.configMapParamVos) {
+      isExistConfig = serviceConfigRes.data.data.configMapParamVos.length > 0
+    }
+
     if (!isExistConfig) {
       // 上传配置信息
       let configPath = path.join(this.explorer.projectRootPath, this.explorer.config.rootPath.config, this.explorer.activeEnv)
@@ -297,7 +330,7 @@ export class DeployProvider {
         return window.showInformationMessage(`请将配置文件放到${configPath.replace(this.explorer.projectRootPath, '')}目录下后再次尝试`)
       }
       let configData = {
-        id: project,
+        id: service,
         description: '',
         environmentId: envId,
         data: {} as any
@@ -328,7 +361,7 @@ export class DeployProvider {
       method: 'get',
       params: {
         environmentId: envId,
-        serviceId: project
+        serviceId: service
       },
       headers: {
         token: this.token
@@ -337,7 +370,7 @@ export class DeployProvider {
     if (serviceRes.data.data) {
       if (pkgDocker === serviceRes.data.data.image) {
         this.explorer.fetch({
-          url: `${this.config.cloudUrl}/api/environments/${envId}/groups/${groupId}/services/${project}/reboot?deploymentName=${project}`,
+          url: `${this.config.cloudUrl}/api/environments/${envId}/groups/${groupId}/services/${service}/reboot?deploymentName=${service}`,
           method: 'DELETE',
           headers: {
             token: this.token
@@ -347,7 +380,7 @@ export class DeployProvider {
       } else {
         serviceRes.data.data.image = pkgDocker
         this.explorer.fetch({
-          url: `${this.config.cloudUrl}/api/environments/${envId}/groups/${groupId}/services/${project}/upgrade?upgradeType=roll&autoUpgrade=false`,
+          url: `${this.config.cloudUrl}/api/environments/${envId}/groups/${groupId}/services/${service}/upgrade?upgradeType=roll&autoUpgrade=false`,
           method: 'put',
           data: serviceRes.data.data,
           headers: {
@@ -367,7 +400,7 @@ export class DeployProvider {
       })
       let hasAccess = false
       accessListRes.data.data.forEach((access: any) => {
-        if (access.id === this.config.cloudeAccess) {
+        if (access.id === this.config.cloudAccess) {
           hasAccess = true
         }
       });
@@ -376,20 +409,20 @@ export class DeployProvider {
           url: `${this.config.cloudUrl}/api/environments/${envId}/ingresses`,
           method: 'post',
           data: {
-            id: this.config.cloudeAccess,
-            level3domen: this.config.cloudeAccess,
+            id: this.config.cloudAccess,
+            level3domen: this.config.cloudAccess,
             maxBodySize: "8",
             environmentName: envId,
             paths: [
               {
                 id: uuid(),
                 path: "/",
-                serviceId: project,
+                serviceId: service,
                 servicePort: "80",
                 error: false
               }
             ],
-            host: `${this.config.cloudeAccess}.${envRes.data.data.secondaryDomain}.${this.explorer.config.rootPath.domain}`,
+            host: `${this.config.cloudAccess}.${envRes.data.data.secondaryDomain}.${this.explorer.config.rootPath.domain}`,
             secondaryDomain: `${envRes.data.data.secondaryDomain}.${this.explorer.config.rootPath.domain}`
           },
           headers: {
@@ -399,7 +432,7 @@ export class DeployProvider {
       }
 
       let ingress: any = {}
-      ingress[this.config.cloudeAccess] = `${this.config.cloudeAccess}.${envRes.data.data.secondaryDomain}.${this.explorer.config.rootPath.domain}`
+      ingress[this.config.cloudAccess] = `${this.config.cloudAccess}.${envRes.data.data.secondaryDomain}.${this.explorer.config.rootPath.domain}`
 
       // 新建服务
       this.explorer.fetch({
@@ -410,7 +443,7 @@ export class DeployProvider {
         },
         data: {
           groupName: groupId,
-          id: project,
+          id: service,
           type: "deployment",
           replicas: 1,
           description: "",
@@ -430,7 +463,7 @@ export class DeployProvider {
           mountPath: "",
           pvcName: "",
           accessModes: "ReadWriteMany",
-          configMapParamVos: [{ "containerMountPath": "/home/work/dist/static/conf/", "configMapName": project }],
+          configMapParamVos: [{ "containerMountPath": "/home/work/dist/static/conf/", "configMapName": service }],
           secretVos: [],
           concurrencyPolicy: "Forbid",
           healthCheckFlag: false,
@@ -441,7 +474,7 @@ export class DeployProvider {
           groupId: groupId
         }
       })
-      window.showInformationMessage('新建服务：' + project + '成功. [立即访问](command:meteor.deployWebVisit)')
+      window.showInformationMessage('新建服务：' + service + '成功. [立即访问](command:meteor.deployWebVisit)')
     }
 
   }

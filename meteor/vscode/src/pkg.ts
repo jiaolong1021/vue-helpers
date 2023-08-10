@@ -207,7 +207,7 @@ export class PkgProvider {
               let outList = out.split('\n')
               for (let i = 0; i < outList.length; i++) {
                 const outItem = outList[i];
-                if (outItem.includes('Untagged:') && outItem.includes(`${project}:${version}`)) {
+                if (outItem.includes('Untagged:') && outItem.includes(`${pkgConfig.jenkinsJob || project}:${version}`)) {
                   ret = outItem.replace(new RegExp(`.*Untagged:\\s(.*:${version}).*`, 'gi'), '$1')
                   if (showMsg) {
                     env.clipboard.writeText(ret)

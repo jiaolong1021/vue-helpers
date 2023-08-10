@@ -27,6 +27,20 @@ export class ProjectProvider {
     newProjectStatus.tooltip = '创建工程'
     newProjectStatus.show()
     this.context.subscriptions.push(newProjectStatus)
+
+    const packageStatus = window.createStatusBarItem(StatusBarAlignment.Right, -99998)
+    packageStatus.command = 'meteor.packageRun'
+    packageStatus.text = '$(debug-start) 打包'
+    packageStatus.tooltip = 'Jenkins打包'
+    packageStatus.show()
+    this.context.subscriptions.push(packageStatus)
+
+    const deployStatus = window.createStatusBarItem(StatusBarAlignment.Right, -99997)
+    deployStatus.command = 'meteor.deployRun'
+    deployStatus.text = '$(debug-start) 部署'
+    deployStatus.tooltip = '容器云部署'
+    deployStatus.show()
+    this.context.subscriptions.push(deployStatus)
   }
 
   // 注册新建工程命令

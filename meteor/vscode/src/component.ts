@@ -1217,18 +1217,21 @@ ${space}},\n`;
   }
 
   public initConfig() {
-    const pkg = fs.readFileSync(path.join(this.explorer.projectRootPath, 'package.json'), 'utf-8')
-    if (/"vue":\s*".?2.*"/gi.test(pkg)) {
-      this.category = 'vue2'
-    } else if (/"vue":\s*".?3.*"/gi.test(pkg)) {
-      this.category = 'vue3'
-    } else if (/"react":\s*".?3.*"/gi.test(pkg)) {
-      this.category = 'react'
-    } else {
-      this.category = 'miniapp'
+    try {
+      const pkg = fs.readFileSync(path.join(this.explorer.projectRootPath, 'package.json'), 'utf-8')
+      if (/"vue":\s*".?2.*"/gi.test(pkg)) {
+        this.category = 'vue2'
+      } else if (/"vue":\s*".?3.*"/gi.test(pkg)) {
+        this.category = 'vue3'
+      } else if (/"react":\s*".?3.*"/gi.test(pkg)) {
+        this.category = 'react'
+      } else {
+        this.category = 'miniapp'
+      }
+      this.setPage(this.templateRoot, 'page.json', '插件中page.json文件出错！', false)
+      this.setPage(this.componentRoot, 'component.json', '目前还没有内置组件', true)
+    } catch (error) {
     }
-    this.setPage(this.templateRoot, 'page.json', '插件中page.json文件出错！', false)
-    this.setPage(this.componentRoot, 'component.json', '目前还没有内置组件', true)
   }
 
   public offlineGenerateComponent(name: string) {

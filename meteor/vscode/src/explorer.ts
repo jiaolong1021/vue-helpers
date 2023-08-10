@@ -429,9 +429,11 @@ class JsonHoverProvider implements HoverProvider {
     cloudUrl: '容器云访问地址',
     cloudUsername: '容器云登录账号',
     cloudPassword: '容器云登录密码',
-    cloudeEnv: '容器云环境，必填，可通过同步获取',
-    cloudeGroup: '容器云服务组，必填，可通过同步获取',
-    cloudeAccess: '容器云访问权，必填，需为英文',
+    cloudEnv: '容器云环境，必填，可通过同步获取',
+    cloudGroup: '容器云服务组，必填，可通过同步获取',
+    cloudService: '容器云服务，选填，不填为服务名称',
+    cloudConfig: '容器云配置集名称，选填，不填为服务名称',
+    cloudAccess: '容器云访问权，必填，需为英文',
     rootPath: "根路径",
     view: '页面根路径',
     api: '接口根路径',
@@ -553,19 +555,25 @@ class JSONCompletionItemProvider implements CompletionItemProvider {
             label: 'cloudPassword',
             documentation: '容器云登录密码'
           }, {
-            label: 'cloudeEnv',
+            label: 'cloudEnv',
             documentation: '容器云环境，必填，可通过同步获取'
           }, {
-            label: 'cloudeGroup',
+            label: 'cloudGroup',
             documentation: '容器云服务组，必填，可通过同步获取'
           }, {
-            label: 'cloudeAccess',
+            label: 'cloudService',
+            documentation: '容器云服务, 可填，不填则为服务名称'
+          }, {
+            label: 'cloudConfig',
+            documentation: '容器云配置集名称, 可填，不填则为服务名称'
+          }, {
+            label: 'cloudAccess',
             documentation: '容器云访问权，必填，需为英文'
           }]
         } else {
-          if (location.path.includes('cloudeEnv')) {
+          if (location.path.includes('cloudEnv')) {
             jsonItems = this.explorer.cloudEnvSuggestions
-          } else if (location.path.includes('cloudeGroup')) {
+          } else if (location.path.includes('cloudGroup')) {
             jsonItems = this.explorer.cloudServiceGroupSuggestions
           }
         }

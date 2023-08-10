@@ -18,7 +18,7 @@ export interface TagObject {
 export default class ElementProvider {
   public explorer: ExplorerProvider
   public context: ExtensionContext
-  public version: string = ''
+  public version: string = 'element-plus'
   public pathAlias = {
     alias: '',
     path: ''
@@ -27,11 +27,15 @@ export default class ElementProvider {
   constructor(explorer: ExplorerProvider, context: ExtensionContext) {
     this.explorer = explorer
     this.context = context
-    const pkg = fs.readFileSync(path.join(this.explorer.projectRootPath, 'package.json'), 'utf-8')
-    if (pkg.includes('element-plus')) {
-      this.version = 'element-plus'
-    } else if (pkg.includes('element-ui')) {
-      this.version = 'element-ui'
+    try {
+      const pkg = fs.readFileSync(path.join(this.explorer.projectRootPath, 'package.json'), 'utf-8')
+      if (pkg.includes('element-plus')) {
+        this.version = 'element-plus'
+      } else if (pkg.includes('element-ui')) {
+        this.version = 'element-ui'
+      }
+    } catch (error) {
+      
     }
     if (this.explorer.config.rootPath) {
       let alias = this.explorer.config.rootPath.root.split('=')

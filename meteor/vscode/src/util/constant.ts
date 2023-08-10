@@ -27,9 +27,11 @@ export const config = `{
       "cloudUrl": "http://cloud.cs2025.com",
       "cloudUsername": "admin",
       "cloudPassword": "U2FsdGVkX19TyGejvK4KWeJb1KahUGivElENkpDONhM=",
-      "cloudeEnv": "",
-      "cloudeGroup": "",
-      "cloudeAccess": ""
+      "cloudEnv": "",
+      "cloudGroup": "",
+      "cloudService": "",
+      "cloudConfig": "",
+      "cloudAccess": ""
     }
   },
   "test": {
@@ -48,9 +50,11 @@ export const config = `{
       "cloudUrl": "http://cloud.cs2025.com",
       "cloudUsername": "admin",
       "cloudPassword": "U2FsdGVkX19TyGejvK4KWeJb1KahUGivElENkpDONhM=",
-      "cloudeEnv": "",
-      "cloudeGroup": "",
-      "cloudeAccess": ""
+      "cloudEnv": "",
+      "cloudGroup": "",
+      "cloudService": "",
+      "cloudConfig": "",
+      "cloudAccess": ""
     }
   },
   "product": {
@@ -69,9 +73,11 @@ export const config = `{
       "cloudUrl": "http://cloud.cs2025.com",
       "cloudUsername": "admin",
       "cloudPassword": "U2FsdGVkX19TyGejvK4KWeJb1KahUGivElENkpDONhM=",
-      "cloudeEnv": "",
-      "cloudeGroup": "",
-      "cloudeAccess": ""
+      "cloudEnv": "",
+      "cloudGroup": "",
+      "cloudService": "",
+      "cloudConfig": "",
+      "cloudAccess": ""
     }
   }
 }`

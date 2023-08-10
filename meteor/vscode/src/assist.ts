@@ -48,7 +48,7 @@ export default class Assist {
     let editor = window.activeTextEditor;
     if (!editor) { return; }
     let txt = editor.document.lineAt(editor.selection.anchor.line).text;
-    if (/.*@\w*=\"\w.*\"/gi.test(txt)) {
+    if (/.*@[\w-.]*=\"\w.*\"/gi.test(txt)) {
       // vue名称，跳转并生成函数
       this.jumpAndGenerateMtd()
     } else {
