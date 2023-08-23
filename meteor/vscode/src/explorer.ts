@@ -201,19 +201,21 @@ export class ExplorerProvider {
       let keys: any[] = []
       let fields: string[] = []
       activeSwaggers.forEach((url: string, index: number) => {
-        let key = getSwaggerKey(url)
-        if (keys.includes(key)) {
-          keys.push({
-            key: key + index,
-            url: url
-          })
-          fields.push(key + index)
-        } else {
-          keys.push({
-            key: key,
-            url: url
-          })
-          fields.push(key)
+        if (url) {
+          let key = getSwaggerKey(url)
+          if (keys.includes(key)) {
+            keys.push({
+              key: key + index,
+              url: url
+            })
+            fields.push(key + index)
+          } else {
+            keys.push({
+              key: key,
+              url: url
+            })
+            fields.push(key)
+          }
         }
       });
       let configFile = fs.readFileSync(path.join(this.projectRootPath, swaggerPath), 'utf-8')
@@ -251,8 +253,9 @@ export class ExplorerProvider {
           } else {
             let swaggerField = line.split(':')[0].trim()
             if (fields.includes(swaggerField)) {
-              fields.splice(fields.indexOf(swaggerField), 1)
-              keys.splice(fields.indexOf(swaggerField), 1)
+              let fieldIndex = fields.indexOf(swaggerField)
+              fields.splice(fieldIndex, 1)
+              keys.splice(fieldIndex, 1)
             }
           }
         }

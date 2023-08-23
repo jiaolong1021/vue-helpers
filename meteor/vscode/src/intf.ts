@@ -222,8 +222,11 @@ export class IntfProvider {
         if (this.fileType === 'ts') {
           baseURL += '(window as any).'
         }
-        
-        let configFile = fs.readFileSync(path.join(this.projectRootPath, swaggerPath), 'utf-8').trim()
+        let configFile = ''
+        try {
+          configFile = fs.readFileSync(path.join(this.projectRootPath, swaggerPath), 'utf-8').trim()
+        } catch (error) {
+        }
         let variable = configFile.replace(/^(var|const)\s*/gi, '').replace(/\s+.*/gi, '')
         baseURL = baseURL + variable + '.' + field + '.' + getSwaggerKey(url)
       }

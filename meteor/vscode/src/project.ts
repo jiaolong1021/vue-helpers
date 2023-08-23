@@ -35,12 +35,26 @@ export class ProjectProvider {
     packageStatus.show()
     this.context.subscriptions.push(packageStatus)
 
-    const deployStatus = window.createStatusBarItem(StatusBarAlignment.Right, -99997)
+    const packageVersionStatus = window.createStatusBarItem(StatusBarAlignment.Right, -99997)
+    packageVersionStatus.command = 'meteor.packageVersion'
+    packageVersionStatus.text = '$(explorer-view-icon) 包号'
+    packageVersionStatus.tooltip = '获取Jenkins包号'
+    packageVersionStatus.show()
+    this.context.subscriptions.push(packageVersionStatus)
+
+    const deployStatus = window.createStatusBarItem(StatusBarAlignment.Right, -99996)
     deployStatus.command = 'meteor.deployRun'
     deployStatus.text = '$(debug-start) 部署'
     deployStatus.tooltip = '容器云部署'
     deployStatus.show()
     this.context.subscriptions.push(deployStatus)
+
+    const deployWebVisit = window.createStatusBarItem(StatusBarAlignment.Right, -99995)
+    deployWebVisit.command = 'meteor.deployWebVisit'
+    deployWebVisit.text = '$(eye) Web访问'
+    deployWebVisit.tooltip = '容器云Web访问'
+    deployWebVisit.show()
+    this.context.subscriptions.push(deployWebVisit)
   }
 
   // 注册新建工程命令
