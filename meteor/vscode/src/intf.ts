@@ -322,11 +322,18 @@ export class IntfProvider {
               } else {
                 nameList = [last];
               }
+              // 如果名称只是请求
+              if (nameList.length === 1 && nameList[0] === reqMtd) {
+                if (prev !== reqMtd) {
+                  nameList.pop()
+                }
+                nameList.unshift(prev)
+              }
             } else {
               nameList = [apiPaths[apiPathLen - 1]]
             }
             // 加上请求前缀
-            if (nameList[0] && !nameList[0].toLowerCase().includes(reqMtd)) {
+            if (nameList[0] && nameList[0].toLowerCase().indexOf(reqMtd) !== 0) {
               nameList.unshift(reqMtd);
             }
             // 重名处理
