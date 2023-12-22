@@ -11,8 +11,10 @@ export function getTags(version: string) {
     return element
   } else if (version === 'element-plus') {
     return elementPlus
-  } else {
+  } else if (version === 'vant') {
     return vant
+  } else {
+    return {}
   }
 }
 

@@ -8,11 +8,14 @@ export function getGlobalAttrs(version: string) {
     return {
       ...element,
       ...vue,
-      ...vant
     }
   } else if (version === 'element-plus') {
     return {
       ...elementPlus,
+      ...vue,
+    }
+  } else if (version === 'vant') {
+    return {
       ...vue,
       ...vant
     }

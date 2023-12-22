@@ -18,7 +18,7 @@ export interface TagObject {
 export default class ElementProvider {
   public explorer: ExplorerProvider
   public context: ExtensionContext
-  public version: string = 'element-plus'
+  public version: string = ''
   public pathAlias = {
     alias: '',
     path: ''
@@ -55,7 +55,7 @@ class ElementCompletionItemProvider implements CompletionItemProvider {
   public _document: TextDocument | any
   public _position: Position | any
   public tabSpace: string = ''
-  public tagReg: RegExp = /<([\w-]+)\s+/g;
+  public tagReg: RegExp = /<([\w-\.]+)\s+/g;
   public attrReg: RegExp = /(?:\(|\s*)((\w(-)?)*)=['"][^'"]*/;  // 能够匹配 left-right 属性
   public tagStartReg: RegExp = /<([\w-]*)$/;
   public traverse: Traverse

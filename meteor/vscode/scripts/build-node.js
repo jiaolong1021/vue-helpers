@@ -1,6 +1,5 @@
 const path = require('path');
 const fs = require('fs');
-
 require('esbuild').build({
 	entryPoints: {
 		client: './out/client.js',

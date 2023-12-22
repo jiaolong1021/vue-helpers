@@ -139,6 +139,9 @@ export class ExplorerProvider {
     this.context.subscriptions.push(commands.registerCommand('meteor.explain', () => {
       open(url.official + '/vscode/')
     }))
+    this.context.subscriptions.push(commands.registerCommand('meteor.generateLocalConfig', () => {
+      this.generateConfig()
+    }))
     this.context.subscriptions.push(commands.registerCommand('meteor.libraryVisit', async () => {
       const remoteCmd = await execa('git', ['remote', '-v'], { cwd: this.projectRootPath })
       if (remoteCmd.stdout) {
@@ -329,7 +332,7 @@ export class ExplorerProvider {
     // docker仓库不允许大写
     this.project = project.toLowerCase()
     let meteorJsonPath = path.join(this.projectRootPath, this.packageName)
-    let gitignorePath = path.join(this.projectRootPath, '.gitignore')
+    // 存在配置文件
     if (fs.existsSync(meteorJsonPath)) {
       let meteorConfig: any = fs.readFileSync(meteorJsonPath, 'utf-8')
       if (meteorConfig) {
@@ -346,13 +349,20 @@ export class ExplorerProvider {
         this.setConfDir(path.join(this.projectRootPath, meteorConfig.rootPath.config))
       }
     } else {
-      fs.writeFileSync(meteorJsonPath, config)
       this.config = config
-      if (fs.existsSync(gitignorePath)) {
-        fs.appendFileSync(gitignorePath, '\n' + this.packageName)
-      }
-      this.setConfDir(path.join(this.projectRootPath, 'conf'))
     }
+  }
+
+  public generateConfig() {
+    let meteorJsonPath = path.join(this.projectRootPath, this.packageName)
+    let gitignorePath = path.join(this.projectRootPath, '.gitignore')
+    fs.writeFileSync(meteorJsonPath, config)
+    this.config = config
+    if (fs.existsSync(gitignorePath)) {
+      fs.appendFileSync(gitignorePath, '\n' + this.packageName)
+    }
+    this.setConfDir(path.join(this.projectRootPath, 'conf'))
+    window.showInformationMessage('生成配置成功')
   }
 
   public setConfDir(confPath: string) {

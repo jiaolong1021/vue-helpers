@@ -13,14 +13,14 @@ export function getPlatform() {
 export function getWorkspaceRoot(documentUrl: string) {
   let url: string = '';
   if (workspace.workspaceFolders?.length === 1) {
-    return workspace.workspaceFolders[0].uri.path 
+    return winRootPathHandle(workspace.workspaceFolders[0].uri.path)
   }
   workspace.workspaceFolders?.forEach((workspaceFolder) => {
     if(documentUrl.includes(workspaceFolder.uri.path)) {
       url = workspaceFolder.uri.path
     }
   })
-  return url
+  return winRootPathHandle(url)
 }
 export function getRelativePath(src: string, dist: string) {
   let vfPath = path.relative(src, dist)
@@ -73,7 +73,7 @@ export function asNormal(key: string, modifiers?: string) {
 }
 // windows根路径处理
 export function winRootPathHandle(pagePath: string) {
-  if (os.platform().includes('win') && pagePath.length > 0 && pagePath[0] === '\\') {
+  if (os.platform().includes('win') && pagePath.length > 0 && (pagePath[0] === '\\' || pagePath[0] === '/')) {
     return pagePath.substr(1, pagePath.length);
   } else {
     return pagePath;
