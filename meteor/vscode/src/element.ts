@@ -7,6 +7,7 @@ import { setTabSpace, getWorkspaceRoot, getRelativePath, getCurrentWord } from '
 import { getGlobalAttrs } from './globalAttribute/index';
 import { getTags, getJsTags } from './tags/index';
 import { getDocuments } from './documents/index'
+import { getTip } from './tip/index'
 import Traverse from './util/traverse'
 // const pretty = require('pretty');
 
@@ -62,6 +63,7 @@ class ElementCompletionItemProvider implements CompletionItemProvider {
   public vueFiles: any = []
   public TAGS: any = {}
   public TAGSJs: any = {}
+  public TIPS: any = {}
   public GlobalAttrs: any = {}
 
   constructor(elementProvider: ElementProvider) {
@@ -69,6 +71,7 @@ class ElementCompletionItemProvider implements CompletionItemProvider {
     this.traverse = new Traverse(this.elementProvider.explorer, getWorkspaceRoot(window.activeTextEditor?.document.uri.path || ''))
     this.vueFiles = this.traverse.search('.vue', '')
     this.TAGS = getTags(this.elementProvider.version)
+    this.TIPS = getTip(this.elementProvider.version)
     this.TAGSJs = getJsTags(this.elementProvider.version)
     this.GlobalAttrs = getGlobalAttrs(this.elementProvider.version)
     if (workspace.workspaceFolders) {
@@ -172,10 +175,10 @@ class ElementCompletionItemProvider implements CompletionItemProvider {
     return {
       label: tag,
       sortText: `00${id}${tag}`,
-      insertText: new SnippetString(tagVal._self.text.join('\n')),
+      insertText: new SnippetString(tagVal),
       kind: CompletionItemKind.Snippet,
       detail: `meteor`,
-      documentation: tagVal._self.description
+      documentation: ''
     };
   }
 
@@ -238,7 +241,7 @@ class ElementCompletionItemProvider implements CompletionItemProvider {
     }
 
     try {
-      for (let tag in this.TAGS) {
+      for (let tag in this.TIPS) {
         suggestions.push(this.buildTagSuggestion(tag, this.TAGS[tag], id));
         id++;
       }

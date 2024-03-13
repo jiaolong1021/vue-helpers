@@ -1,4 +1,4 @@
-import { ExtensionContext, workspace } from 'vscode';
+import { ExtensionContext } from 'vscode';
 import { ProjectProvider } from './project'
 import { ExplorerProvider } from './explorer'
 import { ComponentProvider } from './component'
@@ -10,13 +10,15 @@ import ElementProvider from './element';
 
 export function activate(context: ExtensionContext) {
   // 工程
+  console.log('activate')
   const project = new ProjectProvider(context, init)
   project.showInStatusBar()
   project.registerCommand()
 
-  if (workspace.workspaceFolders) {
-    init(context)
-  }
+  // if (workspace.workspaceFolders) {
+  //   console.log('init')
+  //   init(context)
+  // }
   // {
 //   "key": "shift+cmd+o",
 //   "command": "workbench.action.gotoSymbol"
