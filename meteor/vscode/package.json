@@ -100,6 +100,11 @@
         }
       },
       {
+				"command": "meteor.generateLocalConfig",
+				"title": "生成本地配置",
+				"icon": "$(cloud-download)"
+			},
+      {
         "command": "meteor.interfaceSync",
         "title": "更新",
         "icon": {
@@ -258,6 +263,11 @@
           "group": "navigation",
           "when": "view == meteor"
         },
+        {
+					"command": "meteor.generateLocalConfig",
+					"group": "navigation",
+					"when": "view == meteor"
+				},
         {
           "command": "meteor.envDev",
           "when": "view == meteor"

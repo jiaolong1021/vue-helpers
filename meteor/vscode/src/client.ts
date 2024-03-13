@@ -1,24 +1,22 @@
-import { ExtensionContext } from 'vscode';
+import { ExtensionContext, workspace } from 'vscode';
 import { ProjectProvider } from './project'
 import { ExplorerProvider } from './explorer'
 import { ComponentProvider } from './component'
-import { IntfProvider } from './intf'
-import { PkgProvider } from './pkg';
-import { DeployProvider } from './deploy';
-import Assist from './assist';
-import ElementProvider from './element';
+// import { IntfProvider } from './intf'
+// import { PkgProvider } from './pkg';
+// import { DeployProvider } from './deploy';
+// import Assist from './assist';
+// import ElementProvider from './element';
 
 export function activate(context: ExtensionContext) {
   // 工程
-  console.log('activate')
   const project = new ProjectProvider(context, init)
   project.showInStatusBar()
   project.registerCommand()
 
-  // if (workspace.workspaceFolders) {
-  //   console.log('init')
-  //   init(context)
-  // }
+  if (workspace.workspaceFolders) {
+    init(context)
+  }
   // {
 //   "key": "shift+cmd+o",
 //   "command": "workbench.action.gotoSymbol"
@@ -32,18 +30,18 @@ function init(context: ExtensionContext) {
     const component = new ComponentProvider(context, explorer)
     component.register()
   
-    const intf = new IntfProvider(context, explorer)
-    intf.register()
+    // const intf = new IntfProvider(context, explorer)
+    // intf.register()
   
-    const pkg = new PkgProvider(context, explorer)
-    pkg.register()
+    // const pkg = new PkgProvider(context, explorer)
+    // pkg.register()
   
-    const deploy = new DeployProvider(context, explorer, pkg)
-    deploy.register()
+    // const deploy = new DeployProvider(context, explorer, pkg)
+    // deploy.register()
   
-    const assist = new Assist(context, explorer)
-    assist.register()
+    // const assist = new Assist(context, explorer)
+    // assist.register()
     
-    const element = new ElementProvider(explorer, context)
-    element.register()
+    // const element = new ElementProvider(explorer, context)
+    // element.register()
 }
