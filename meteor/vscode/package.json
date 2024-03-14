@@ -237,10 +237,10 @@
       "explorer": [
         {
           "id": "meteor",
-          "name": "meteor集成环境",
+          "name": "meteor",
           "icon": "$(json)",
           "visibility": "visible",
-          "contextualTitle": "meteor集成环境"
+          "contextualTitle": "meteor"
         }
       ]
     },

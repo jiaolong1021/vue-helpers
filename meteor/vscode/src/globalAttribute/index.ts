@@ -3,19 +3,22 @@ import elementPlus from "./element-plus";
 import vue from "./vue";
 import vant from "./vant";
 
-export function getGlobalAttrs(version: string) {
-  if (version === 'element-ui') {
-    return {
-      ...element,
-      ...vue,
-      ...vant
-    }
-  } else if (version === 'element-plus') {
-    return {
-      ...elementPlus,
-      ...vue,
-      ...vant
-    }
+export function getGlobalAttrs(version: string[]) {
+  let ret = {
+    ...vue
   }
-  return {}
+  if (version.includes('element-ui')) {
+    ret = Object.assign(ret, element)
+  }
+  if (version.includes('element-plus')) {
+    ret = Object.assign(ret, elementPlus)
+  }
+  // if (version.includes('ant-design-vue')) {
+  //   ret = Object.assign(ret, ant)
+  // }
+  if (version.includes('vant')) {
+    ret = Object.assign(ret, vant)
+  }
+  
+  return ret
 }

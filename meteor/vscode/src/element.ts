@@ -3,7 +3,7 @@ import { ExtensionContext, languages, CompletionItemProvider, Range, CompletionI
 import { ExplorerProvider } from "./explorer";
 import * as fs from 'fs'
 import * as path from 'path'
-import { setTabSpace, getWorkspaceRoot, getRelativePath, getCurrentWord } from './util/util'
+import { setTabSpace, getWorkspaceRoot, getRelativePath, getCurrentWord, winRootPathHandle } from './util/util'
 import { getGlobalAttrs } from './globalAttribute/index';
 import { getTags, getJsTags } from './tags/index';
 import { getDocuments } from './documents/index'
@@ -19,7 +19,7 @@ export interface TagObject {
 export default class ElementProvider {
   public explorer: ExplorerProvider
   public context: ExtensionContext
-  public version: string = 'element-plus'
+  public version: string[] = []
   public pathAlias = {
     alias: '',
     path: ''
@@ -29,11 +29,15 @@ export default class ElementProvider {
     this.explorer = explorer
     this.context = context
     try {
-      const pkg = fs.readFileSync(path.join(this.explorer.projectRootPath, 'package.json'), 'utf-8')
+      const pkg = fs.readFileSync(winRootPathHandle(path.join(this.explorer.projectRootPath, 'package.json')), 'utf-8')
       if (pkg.includes('element-plus')) {
-        this.version = 'element-plus'
-      } else if (pkg.includes('element-ui')) {
-        this.version = 'element-ui'
+        this.version.push('element-plus')
+      } 
+      if (pkg.includes('element-ui')) {
+        this.version.push('element-ui')
+      }
+      if (pkg.includes('ant-design-vue')) {
+        this.version.push('ant-design-vue')
       }
     } catch (error) {
       
@@ -111,7 +115,7 @@ class ElementCompletionItemProvider implements CompletionItemProvider {
     }
     else if (this.isImport()) {
       return this.importSuggestion();
-    } else if (word.includes('e')) {
+    } else if (word.includes('e') || word.includes('a')) {
       return this.notInTemplate() ? this.getTagJsSuggestion() : this.getTagSuggestion()
     } else if (word.includes('v')) {
       return this.getTagSuggestion()
@@ -242,7 +246,7 @@ class ElementCompletionItemProvider implements CompletionItemProvider {
 
     try {
       for (let tag in this.TIPS) {
-        suggestions.push(this.buildTagSuggestion(tag, this.TAGS[tag], id));
+        suggestions.push(this.buildTagSuggestion(tag, this.TIPS[tag], id));
         id++;
       }
     } catch (error) {

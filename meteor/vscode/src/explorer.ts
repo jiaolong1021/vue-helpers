@@ -319,7 +319,7 @@ export class ExplorerProvider {
       product: '生产',
     }
     this.activeEnvName = nameKey[env]
-    this.view && (this.view.title = `meteor集成环境[${envName}]`)
+    this.view && (this.view.title = `meteor[${envName}]`)
   }
 
   public generateMeteorJson() {
@@ -332,7 +332,7 @@ export class ExplorerProvider {
     // docker仓库不允许大写
     this.project = project.toLowerCase()
     let meteorJsonPath = path.join(this.projectRootPath, this.packageName)
-    let gitignorePath = path.join(this.projectRootPath, '.gitignore')
+    // let gitignorePath = path.join(this.projectRootPath, '.gitignore')
     if (fs.existsSync(meteorJsonPath)) {
       let meteorConfig: any = fs.readFileSync(meteorJsonPath, 'utf-8')
       if (meteorConfig) {
@@ -349,12 +349,13 @@ export class ExplorerProvider {
         this.setConfDir(path.join(this.projectRootPath, meteorConfig.rootPath.config))
       }
     } else {
-      fs.writeFileSync(meteorJsonPath, config)
       this.config = config
-      if (fs.existsSync(gitignorePath)) {
-        fs.appendFileSync(gitignorePath, '\n' + this.packageName)
-      }
-      this.setConfDir(path.join(this.projectRootPath, 'conf'))
+      // fs.writeFileSync(meteorJsonPath, config)
+      // this.config = config
+      // if (fs.existsSync(gitignorePath)) {
+      //   fs.appendFileSync(gitignorePath, '\n' + this.packageName)
+      // }
+      // this.setConfDir(path.join(this.projectRootPath, 'conf'))
     }
   }
 
