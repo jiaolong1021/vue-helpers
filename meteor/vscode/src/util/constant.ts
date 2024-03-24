@@ -1,11 +1,13 @@
 export const config = `{
   "activeEnv": "development",
+  "language": "vue3",
   "rootPath": {
     "root": "@=src",
     "view": "src/views",
     "component": "src/components",
     "api": "src/api",
-    "store": "",
+    "store": "src/stores",
+    "composables": "",
     "request": "src/utils/request",
     "config": "conf",
     "domain": "prd.uimpcloud.com",
@@ -15,6 +17,12 @@ export const config = `{
     "interface": {
       "swaggerUrl": []
     },
+    "db": [{
+      "type": "",
+      "url": "",
+      "username": "",
+      "password": "",
+    }],
     "package": {
       "jenkinsUrl": "http://jenkins.cs2025.com",
       "jenkinsUsername": "admin",
@@ -38,6 +46,12 @@ export const config = `{
     "interface": {
       "swaggerUrl": []
     },
+    "db": [{
+      "type": "",
+      "url": "",
+      "username": "",
+      "password": "",
+    }],
     "package": {
       "jenkinsUrl": "http://jenkins.cs2025.com",
       "jenkinsUsername": "admin",
@@ -61,6 +75,12 @@ export const config = `{
     "interface": {
       "swaggerUrl": []
     },
+    "db": [{
+      "type": "",
+      "url": "",
+      "username": "",
+      "password": "",
+    }],
     "package": {
       "jenkinsUrl": "http://jenkins.cs2025.com",
       "jenkinsUsername": "admin",

@@ -7,6 +7,8 @@ import { open, url, getHtmlForWebview, winRootPathHandle, getWorkspaceRoot, getR
 import axios, { AxiosInstance } from 'axios';
 import vuePropsDef from './util/vueProps';
 import { ExplorerProvider } from './explorer';
+import { traverseFile } from './util/util'
+import { minioUpload, minioGet } from './util/minioUploader';
 
 export class ComponentProvider {
   public context: ExtensionContext
@@ -41,10 +43,12 @@ export class ComponentProvider {
   public suggestions: CompletionItem[] = []
   public pageSuggestions: CompletionItem[] = []
   public category: string = 'miniapp'
+  public pluginParam: any = {}
 
   constructor(context: ExtensionContext, explorer: ExplorerProvider) {
     this.context = context
     this.explorer = explorer
+
     this.fetch = axios.create({
       baseURL: url.base,
       withCredentials: false
@@ -63,6 +67,15 @@ export class ComponentProvider {
     }))
     this.context.subscriptions.push(commands.registerCommand('meteor.componentCompetion', (component: any) => {
       this.offlineGenerateComponent(component.name)
+    }))
+    this.context.subscriptions.push(commands.registerCommand('meteor.openUploadPluginPage', () => {
+      this.openUploadPluginPage()
+    }))
+    this.context.subscriptions.push(commands.registerCommand('meteor.addPluginFile', (uri: Uri) => {
+      this.addPluginFile(uri)
+    }))
+    this.context.subscriptions.push(commands.registerCommand('meteor.uploadFilePlugin', (uri: Uri) => {
+      this.openUploadFilePluginDialog(uri)
     }))
     this.context.subscriptions.push(commands.registerCommand('meteor.generatePage', (uri: Uri) => {
       this.showPick(uri)
@@ -149,6 +162,9 @@ export class ComponentProvider {
         case 'addPage':
           this.addComponentByOnline(message.config.page)
           break;
+        case 'uploadPlugin':
+          this.uploadFilePlugin(message.data)
+          break;
         case 'inPage':
           this.inPage()
           break;
@@ -173,7 +189,12 @@ export class ComponentProvider {
   // 获取页面配置信息
 	getPageConfig() {
 		const config = workspace.getConfiguration('meteor');
-		this.activeView?.webview.postMessage({ command: 'backConfig', config});
+    let meteorJsonPath = path.join(this.projectRoot, 'meteor.json')
+    let meteorConfigFile = {}
+    if (fs.existsSync(meteorJsonPath)) {
+      meteorConfigFile = fs.readFileSync(meteorJsonPath, 'utf-8')
+    }
+		this.activeView?.webview.postMessage({ command: 'backConfig', config, meteorConfigFile, pluginParam: this.pluginParam});
 	}
 
   // 面板关闭
@@ -192,7 +213,7 @@ export class ComponentProvider {
   public loadHtml() {
     if (this.activeView) {
       this.activeView.title = 'Meteor'
-      this.activeView.webview.html = getHtmlForWebview(this.activeView.webview, this.context.extensionPath, '/page', '创建页面')
+      this.activeView.webview.html = getHtmlForWebview(this.activeView.webview, this.context.extensionPath, 'component', '生成组件')
     }
   }
 
@@ -1083,6 +1104,70 @@ ${space}},\n`;
    * @param uri 
    */
   async sync() {
+    // 获取权限内的所有插件信息
+    const config = workspace.getConfiguration('meteor');
+    let user: any = config.get('user')
+    let userInfo: any = {}
+    if (user) {
+      userInfo = JSON.parse(user)
+    } else {
+      window.showInformationMessage('请先[登录](command:meteor.componentUpload)')
+      return
+    }
+    let res = await this.fetch.get('widget?tag=&type=&searchValue=', {
+      headers: {
+        token: userInfo.token
+      }
+    })
+    let pluginRootPath = path.join(this.context.extensionUri.path, 'asset/plugin');
+    let pluginEntry = winRootPathHandle(path.join(pluginRootPath, 'index.json'));
+    let pluginData = res.data.data
+    try {
+      fs.writeFileSync(pluginEntry, JSON.stringify(pluginData));
+    } catch (error) {
+      console.log(error)
+    }
+
+    // 文件同步
+    let retPromise: any = null
+    window.withProgress({
+      location: ProgressLocation.Notification,
+      title: 'meteor',
+      cancellable: true
+    }, (progress, _token) => {
+      let msg = '正在同步中，请耐心等待...';
+      progress.report({
+        increment: 0,
+        message: msg
+      });
+      new Promise(async (resolve, reject) => {
+        pluginData.forEach((pluginItem: any) => {
+          if (pluginItem.id === '282') {
+            pluginItem.code.forEach((code: any) => {
+              if (code.type === 'file' && code.name === 'application.vue') {
+                minioGet({
+                  filePath: code.code,
+                  uploadFilePath: code.name,
+                  fail: () => {
+                    reject('')
+                    retPromise && retPromise()
+                  }
+                })
+              }
+            });
+          }
+        });
+        resolve('')
+        retPromise && retPromise()
+      })
+
+      return new Promise((resolve) => {
+        retPromise = resolve
+      });
+    })
+  }
+
+  async sync2() {
     // 获取页面数据
     const config = workspace.getConfiguration('meteor');
     let user: any = config.get('user')
@@ -1248,6 +1333,206 @@ ${space}},\n`;
     this.pageName = name
     this.pick = name
     this.generate()
+  }
+
+  /**
+   * 打开生成组件页面
+   */
+  public openUploadPluginPage() {
+    this.pluginParam = {
+      opt: 'openPluginDialog'
+    }
+    
+    this.openView()
+  }
+
+  public addPluginFile(uri: Uri) {
+    let dirPath = winRootPathHandle(uri.path)
+    // 入口文件或者文件夹进入，并遍历该目录下的所有文件夹及文件
+    try {
+      let stat = fs.statSync(dirPath)
+      let tree: any[] = []
+      let componentName = ''
+      let baseProjectPath = ''
+
+      if (stat.isDirectory()) {
+        tree = traverseFile(dirPath.replace(/.*[\/|\\]/gi, ''), dirPath.replace(/[\/|\\]\w*$/gi, ''))
+        baseProjectPath = dirPath
+      } else {
+        componentName = dirPath.replace(/.*[\/|\\]/gi, '')
+        baseProjectPath = dirPath.replace(/[\/|\\]\w*.\w*$/gi, '')
+      }
+
+      let files: any[] = []
+      if (tree.length > 0) {
+        files = this.traverseTree(tree, '', true)
+      }
+      if (componentName) {
+        files.push({
+          name: componentName,
+          position: componentName,
+          url: new Date().getTime() + componentName
+        })
+      }
+
+      this.pluginParam = {
+        baseProjectPath: baseProjectPath,
+      }
+
+      const config = workspace.getConfiguration('meteor');
+      let user: any = config.get('user')
+      let userInfo: any = {}
+      if (user) {
+        userInfo = JSON.parse(user)
+      } else {
+        window.showInformationMessage('请先[登录](command:meteor.componentUpload)')
+        return
+      }
+      if (files.length > 0) {
+        this.minioUploadIterator(0, files, `${userInfo.token}/common`, () => {
+          this.activeView?.webview.postMessage({ command: 'addPluginFile', params: {
+            tree,
+            files,
+            name: componentName,
+            baseProjectPath: baseProjectPath,
+          }});
+        })
+      }
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  /**
+   * 打开上传插件弹窗
+   */
+  public openUploadFilePluginDialog(uri: Uri) {
+    let dirPath = winRootPathHandle(uri.path)
+    // 入口文件或者文件夹进入，并遍历该目录下的所有文件夹及文件
+    try {
+      let stat = fs.statSync(dirPath)
+      let tree = []
+      let componentName = ''
+      let baseProjectPath = ''
+      let type = ''
+      if (stat.isDirectory()) {
+        baseProjectPath = dirPath
+        // 组件
+        type = '2'
+      } else {
+        baseProjectPath = dirPath.replace(/[\/|\\]\w*.\w*$/gi, '')
+        // 页面
+        type = '5'
+      }
+      componentName = baseProjectPath.replace(/.*[\/|\\]/gi, '')
+      tree = traverseFile('', baseProjectPath)
+      this.pluginParam = {
+        tree,
+        name: componentName,
+        type,
+        baseProjectPath: baseProjectPath,
+        opt: 'addPlugin'
+      }
+      this.openView()
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  /**
+   * 上传插件
+   */
+  public uploadFilePlugin(data: any) {
+    let files: any[] = []
+    if (this.pluginParam.tree.length > 0) {
+      files = this.traverseTree(this.pluginParam.tree, '')
+    }
+
+    const config = workspace.getConfiguration('meteor');
+    let user: any = config.get('user')
+    let userInfo: any = {}
+    if (user) {
+      userInfo = JSON.parse(user)
+    } else {
+      window.showInformationMessage('请先[登录](command:meteor.componentUpload)')
+      return
+    }
+    if (files.length > 0) {
+      this.minioUploadIterator(0, files, `${userInfo.token}/${data.type}/${data.description.name}`)
+    }
+  }
+
+  public minioUploadIterator(current: number, files: any[], userPath: string, callback?: Function) {
+    const fileItem = files[current];
+    let filePath = path.join(this.pluginParam.baseProjectPath, fileItem.name)
+    let fileItemLinux = fileItem.url.replace(/\\/gi, '/')
+    if (fileItemLinux[0] !== '/') {
+      fileItemLinux = '/' + fileItemLinux
+    }
+    let filePosition = `${userPath}${fileItemLinux}`
+    minioUpload({
+      uploadFilePath: filePosition,
+      filePath,
+      success: () => {
+        if (files.length > current + 1) {
+          this.minioUploadIterator(current + 1, files, userPath, callback)
+        } else {
+          // 全部上传完成
+          if (callback) {
+            callback()
+          } else {
+            this.activeView?.webview.postMessage({ command: 'minioUpload', status: true});
+          }
+        }
+      },
+      fail: () => {
+        this.activeView?.webview.postMessage({ command: 'minioUpload', status: false});
+      }
+    })
+  }
+
+  public traverseTree(tree: any[], dirPrefix: string, randomFileName?: boolean) {
+    let ret: {
+      name: string
+      position: string
+      url: string
+    }[] = []
+    tree.forEach(treeItem => {
+      if (treeItem.children) {
+        ret = ret.concat(this.traverseTree(treeItem.children, dirPrefix + path.sep + treeItem.label, randomFileName))
+      } else {
+        if (dirPrefix) {
+          if (randomFileName) {
+            ret.push({
+              name: dirPrefix + path.sep + treeItem.label,
+              position: treeItem.position,
+              url: dirPrefix + path.sep + new Date().getTime() + treeItem.label
+            })
+          } else {
+            ret.push({
+              name: dirPrefix + path.sep + treeItem.label,
+              position: treeItem.position,
+              url: dirPrefix + path.sep + treeItem.label
+            })
+          }
+        } else {
+          if (randomFileName) {
+            ret.push({
+              name: treeItem.label,
+              position: treeItem.position,
+              url: new Date().getTime() + treeItem.label
+            })
+          } else {
+            ret.push({
+              name: treeItem.label,
+              position: treeItem.position,
+              url: treeItem.label
+            })
+          }
+        }
+      }
+    });
+    return ret
   }
 
   public setSuggestions() {

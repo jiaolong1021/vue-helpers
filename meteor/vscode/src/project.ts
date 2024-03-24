@@ -116,10 +116,25 @@ export class ProjectProvider {
         case 'selBaseDir':
           this.selBaseDir();
           return;
+        case 'updateUser':
+          store.set('user', message.user)
+          return;
+        case 'updateProjectTemplate':
+          store.set('projectTemplate', message.projectTemplate)
+          return;
+        case 'getPageConfig':
+          this.getPageConfig()
+          return;
       }
     }, null, this._disposables)
     this.loadHtml()
   }
+
+  // 获取页面配置信息
+	public getPageConfig() {
+		const config = workspace.getConfiguration('meteor');
+		this.activeView?.webview.postMessage({ command: 'backConfig', config});
+	}
 
   // 创建工程
   public async create(message: any) {
@@ -256,7 +271,7 @@ export class ProjectProvider {
   public loadHtml() {
     if (this.activeView) {
       this.activeView.title = '创建新工程'
-      this.activeView.webview.html = getHtmlForWebview(this.activeView.webview, this.context.extensionPath, '/createProject', '创建新工程')
+      this.activeView.webview.html = getHtmlForWebview(this.activeView.webview, this.context.extensionPath, 'project', '创建新工程')
     }
   }
 }

@@ -1,6 +1,8 @@
 import * as os from 'os'
 import { workspace, commands, Webview, Uri, ConfigurationTarget, TextDocument, Position } from 'vscode';
 import * as path from 'path'
+import * as fs from 'fs'
+
 const opn = require('opn');
 export const url = {
   base: 'http://www.80fight.cn:8080',
@@ -97,10 +99,10 @@ function getNonce() {
 // 获取webview内容
 export function getHtmlForWebview(webview: Webview, extensionPath: string, path: string, title: string) {
   const nonce = getNonce();
-  const cssChunk = _toUri(webview,  extensionPath, 'media', '/css/chunk-vendors.css');
-  const cssUri = _toUri(webview,  extensionPath, 'media', 'css/app.css');
-  const vendor = _toUri(webview,  extensionPath, 'media', 'js/chunk-vendors.js');
-  const app = _toUri(webview,  extensionPath, 'media', 'js/app.js');
+  // const cssChunk = _toUri(webview,  extensionPath, 'media', '/css/chunk-vendors.css');
+  const cssUri = _toUri(webview,  extensionPath, 'media', 'assets/index.css');
+  // const vendor = _toUri(webview,  extensionPath, 'media', 'js/chunk-vendors.js');
+  const app = _toUri(webview,  extensionPath, 'media', 'assets/index.js');
 
   return `<!DOCTYPE html>
   <html lang=en>
@@ -109,16 +111,17 @@ export function getHtmlForWebview(webview: Webview, extensionPath: string, path:
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${title}</title>
-    <link nonce="${nonce}" href="${cssChunk}" rel=stylesheet>
     <link nonce="${nonce}" href="${cssUri}" rel=stylesheet>
+    <script nonce="${nonce}">
+      window.rootPath = '${path}'
+      window.vscode = acquireVsCodeApi()
+    </script>
   </head>
   
   <body><noscript><strong>We're sorry but ${title} doesn't work properly without JavaScript enabled. Please enable it to
         continue.</strong></noscript>
     <div id=app></div>
-    <script>var rootPath = '${path}'</script>
-    <script nonce="${nonce}" src="${vendor}"></script>
-    <script nonce="${nonce}" src="${app}"></script>
+    <script type="module" crossorigin nonce="${nonce}" src="${app}"></script>
   </body>
   
   </html>`;
@@ -167,4 +170,31 @@ export function getCurrentWordByHover(document: TextDocument, position: Position
 
 export function getSwaggerKey(url: string) {
   return url.replace(/.*\/\//gi, '').replace(/\..*/gi, '').replace(/-/gi, '_')
+}
+
+// 获取目录下所有文件
+export function traverseFile(rootDir: string, projectPath: string): any[] {
+  let ret = []
+  let files = fs.readdirSync(path.join(projectPath, rootDir))
+  for (let i = 0; i < files.length; i++) {
+    const fileName = files[i]
+    let fileDir = path.join(rootDir, fileName)
+    let fullFileDir = path.join(projectPath, fileDir)
+    let stat = fs.statSync(fullFileDir);
+    if (stat.isDirectory()) {
+      ret.push({
+        label: fileName,
+        path: fileDir,
+        position: fileDir.replace(/\\/gi, '/'),
+        children: traverseFile(fileDir, projectPath)
+      })
+    } else {
+      ret.push({
+        label: fileName,
+        path: fileDir,
+        position: fileDir.replace(/\\/gi, '/')
+      })
+    }
+  }
+  return ret
 }

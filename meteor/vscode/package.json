@@ -100,10 +100,10 @@
         }
       },
       {
-				"command": "meteor.generateLocalConfig",
-				"title": "生成本地配置",
-				"icon": "$(cloud-download)"
-			},
+        "command": "meteor.generateLocalConfig",
+        "title": "生成本地配置",
+        "icon": "$(cloud-download)"
+      },
       {
         "command": "meteor.interfaceSync",
         "title": "更新",
@@ -231,6 +231,18 @@
       {
         "command": "meteor.generatePage",
         "title": "生成页面"
+      },
+      {
+        "command": "meteor.uploadFilePlugin",
+        "title": "上传插件"
+      },
+      {
+        "command": "meteor.openUploadPluginPage",
+        "title": "上传插件"
+      },
+      {
+        "command": "meteor.addPluginFile",
+        "title": "添加插件文件"
       }
     ],
     "views": {
@@ -248,8 +260,22 @@
       "explorer/context": [
         {
           "command": "meteor.generatePage",
-          "when": "explorerResourceIsFolder",
           "group": "0_meteor"
+        },
+        {
+          "command": "meteor.uploadFilePlugin",
+          "group": "0_meteor"
+        },
+        {
+          "command": "meteor.addPluginFile",
+          "group": "0_meteor"
+        }
+      ],
+      "editor/context": [
+        {
+          "when": "!inOutput",
+          "command": "meteor.openUploadPluginPage",
+          "group": "navigation"
         }
       ],
       "view/title": [
@@ -264,10 +290,10 @@
           "when": "view == meteor"
         },
         {
-					"command": "meteor.generateLocalConfig",
-					"group": "navigation",
-					"when": "view == meteor"
-				},
+          "command": "meteor.generateLocalConfig",
+          "group": "navigation",
+          "when": "view == meteor"
+        },
         {
           "command": "meteor.envDev",
           "when": "view == meteor"
@@ -387,6 +413,10 @@
           "type": "string",
           "default": ""
         },
+        "meteor.projectTemplate": {
+          "type": "string",
+          "default": ""
+        },
         "meteor.chromePath": {
           "type": "string",
           "default": ""
@@ -430,5 +460,8 @@
     "uuid": "^9.0.0",
     "vsce": "latest"
   },
-  "gitHead": "b1cc40df44b9cd73ba96d8b7f0369cc3ce690c45"
+  "gitHead": "b1cc40df44b9cd73ba96d8b7f0369cc3ce690c45",
+  "dependencies": {
+    "minio": "^7.1.3"
+  }
 }
