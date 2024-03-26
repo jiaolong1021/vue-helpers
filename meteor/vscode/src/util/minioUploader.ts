@@ -40,11 +40,7 @@ export function minioGet(option: UploadOption) {
   if (!minioClient) {
     generateClient()
   }
-  return getFile(option)
-}
-
-function getFile(option:UploadOption) {
-  return minioClient.fPutObject('common', option.uploadFilePath, option.filePath, function (err: any) {
+  minioClient.fGetObject('common', option.uploadFilePath, option.filePath, function (err: any) {
     if (err) return option.fail && option.fail()
     option.success && option.success()
   })

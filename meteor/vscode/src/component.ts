@@ -2,13 +2,39 @@ import * as path from 'path';
 import * as fs from 'fs'
 import { ExtensionContext, commands, window, WebviewPanel, ViewColumn, Uri, Disposable, workspace, ConfigurationTarget, TextEditor,
   QuickPickItem, Position, ProgressLocation, languages, CompletionItemProvider, CompletionItemKind, CompletionItem, CompletionList,
-  MarkdownString, ProviderResult, TextDocument } from 'vscode'
+  MarkdownString, ProviderResult, TextDocument, HoverProvider, TextLine, Hover } from 'vscode'
 import { open, url, getHtmlForWebview, winRootPathHandle, getWorkspaceRoot, getRelativePath } from './util/util'
 import axios, { AxiosInstance } from 'axios';
 import vuePropsDef from './util/vueProps';
 import { ExplorerProvider } from './explorer';
 import { traverseFile } from './util/util'
 import { minioUpload, minioGet } from './util/minioUploader';
+
+interface Code {
+  code: string
+  name: string
+  position: string
+  type: string
+}
+
+interface Plugin {
+  id: number
+  remark: string
+  type: string
+  userId: string
+  collection: string
+  description: {
+    name: string
+    avatar: string
+    remark: string
+  }
+  className: string
+  category: string
+  block: number
+  apply: string
+  applier: string
+  code: Code[]
+}
 
 export class ComponentProvider {
   public context: ExtensionContext
@@ -44,10 +70,17 @@ export class ComponentProvider {
   public pageSuggestions: CompletionItem[] = []
   public category: string = 'miniapp'
   public pluginParam: any = {}
+  public pluginList: any[] = []
+  public pluginComponentSuggestions: any[] = []
+  public pluginComposiableSuggestions: any[] = []
+  public pluginPageSuggestions: any[] = []
+  public componentHoverProvider: HoverProvider
 
   constructor(context: ExtensionContext, explorer: ExplorerProvider) {
     this.context = context
     this.explorer = explorer
+
+    this.componentHoverProvider = new ComponentHoverProvider(winRootPathHandle(path.join(this.context.extensionUri.path, 'asset/plugin/document.json')))
 
     this.fetch = axios.create({
       baseURL: url.base,
@@ -65,23 +98,38 @@ export class ComponentProvider {
     this.context.subscriptions.push(commands.registerCommand('meteor.componentSync', () => {
       this.sync()
     }))
-    this.context.subscriptions.push(commands.registerCommand('meteor.componentCompetion', (component: any) => {
-      this.offlineGenerateComponent(component.name)
+    this.context.subscriptions.push(commands.registerCommand('meteor.componentCompetion', (plugin: Plugin) => {
+      // this.offlineGenerateComponent(component.name)
+      this.pluginInsert(plugin)
     }))
-    this.context.subscriptions.push(commands.registerCommand('meteor.openUploadPluginPage', () => {
+    this.context.subscriptions.push(commands.registerCommand('meteor.openUploadPluginPage', (uri: Uri) => {
+      this.init(uri)
       this.openUploadPluginPage()
     }))
     this.context.subscriptions.push(commands.registerCommand('meteor.addPluginFile', (uri: Uri) => {
+      this.init(uri)
       this.addPluginFile(uri)
     }))
     this.context.subscriptions.push(commands.registerCommand('meteor.uploadFilePlugin', (uri: Uri) => {
+      this.init(uri)
       this.openUploadFilePluginDialog(uri)
     }))
     this.context.subscriptions.push(commands.registerCommand('meteor.generatePage', (uri: Uri) => {
       this.showPick(uri)
     }))
+    this.context.subscriptions.push(commands.registerCommand('meteor.openComponentAddDialog', (uri: Uri) => {
+      this.init(uri)
+      this.showPickComponent(uri)
+    }))
+    this.context.subscriptions.push(commands.registerCommand('meteor.openComposiableAddDialog', (uri: Uri) => {
+      this.init(uri)
+      this.showPickComposiable(uri)
+    }))
+    
     this.context.subscriptions.push(languages.registerCompletionItemProvider(['vue', 'javascript', 'typescript', 'html', 'wxml', 'scss', 'css', 'wxss'], new ComponentCompletionItemProvider(this), 'm'))
-    this.initConfig()
+    // this.initConfig()
+    this.context.subscriptions.push(languages.registerHoverProvider(['vue', 'wxml'], this.componentHoverProvider))
+    this.openPluginSuggestions()
   }
 
   // 打开页面选择
@@ -90,25 +138,95 @@ export class ComponentProvider {
     this.way = this.GenerateWay.PAGE
 
     const pickItems: QuickPickItem[] = [];
-    this.pages.forEach((item: any) => {
-      if (this.category === item.description || item.description === 'common') {
+    this.pluginList.forEach((item: any) => {
+      if (item.type === '5') {
         pickItems.push({
-          label: item.label,
-          description: item.description
+          label: item.description.name,
+          description: item.description.remark
         });
       }
     });
     
     const pagePick = window.createQuickPick();
-    pagePick.title = '生成页面'
-    pagePick.placeholder = '选择模板'
+    pagePick.title = '添加页面'
+    pagePick.placeholder = '选择页面模板'
     pagePick.items = pickItems
     pagePick.onDidChangeSelection(selection => {
       pagePick.hide();
       // 打开工程才能继续
       if (workspace.workspaceFolders && selection[0] && selection[0].label) {
         this.pick = selection[0].label;
-        this.showPageNamePick(selection[0].description || '');
+        this.showPageNamePick(selection[0].label || '');
+      } else {
+        if (!workspace.workspaceFolders) {
+          window.showInformationMessage('请先打开工程');
+        }
+      }
+		});
+    pagePick.onDidHide(() => pagePick.dispose());
+		pagePick.show();
+  }
+
+  // 添加组件
+  public showPickComponent(uri: Uri) {
+    this.init(uri)
+    this.way = this.GenerateWay.PAGE
+
+    const pickItems: QuickPickItem[] = [];
+    this.pluginList.forEach((item: any) => {
+      if (item.type === '2') {
+        pickItems.push({
+          label: item.description.name,
+          description: item.description.remark
+        });
+      }
+    });
+    
+    const pagePick = window.createQuickPick();
+    pagePick.title = '添加组件'
+    pagePick.placeholder = '选择组件'
+    pagePick.items = pickItems
+    pagePick.onDidChangeSelection(selection => {
+      pagePick.hide();
+      // 打开工程才能继续
+      if (workspace.workspaceFolders && selection[0] && selection[0].label) {
+        this.pick = selection[0].label;
+        this.addPluginByFold(selection[0].label, '')
+      } else {
+        if (!workspace.workspaceFolders) {
+          window.showInformationMessage('请先打开工程');
+        }
+      }
+		});
+    pagePick.onDidHide(() => pagePick.dispose());
+		pagePick.show();
+  }
+
+  // 添加组合函数
+  public showPickComposiable(uri: Uri) {
+    this.init(uri)
+    this.way = this.GenerateWay.PAGE
+
+    const pickItems: QuickPickItem[] = [];
+    this.pluginList.forEach((item: any) => {
+      if (item.type === '3') {
+        pickItems.push({
+          label: item.description.name,
+          description: item.description.remark
+        });
+      }
+    });
+    
+    const pagePick = window.createQuickPick();
+    pagePick.title = '添加组合函数'
+    pagePick.placeholder = '选择组合函数'
+    pagePick.items = pickItems
+    pagePick.onDidChangeSelection(selection => {
+      pagePick.hide();
+      // 打开工程才能继续
+      if (workspace.workspaceFolders && selection[0] && selection[0].label) {
+        this.pick = selection[0].label;
+        this.addPluginByFold(selection[0].label, '')
       } else {
         if (!workspace.workspaceFolders) {
           window.showInformationMessage('请先打开工程');
@@ -189,10 +307,10 @@ export class ComponentProvider {
   // 获取页面配置信息
 	getPageConfig() {
 		const config = workspace.getConfiguration('meteor');
-    let meteorJsonPath = path.join(this.projectRoot, 'meteor.json')
-    let meteorConfigFile = {}
+    let meteorJsonPath = winRootPathHandle(path.join(this.projectRoot, 'meteor.json'))
+    let meteorConfigFile = { language: "vue3" }
     if (fs.existsSync(meteorJsonPath)) {
-      meteorConfigFile = fs.readFileSync(meteorJsonPath, 'utf-8')
+      meteorConfigFile = JSON.parse(fs.readFileSync(meteorJsonPath, 'utf-8'))
     }
 		this.activeView?.webview.postMessage({ command: 'backConfig', config, meteorConfigFile, pluginParam: this.pluginParam});
 	}
@@ -250,7 +368,7 @@ export class ComponentProvider {
         // 获取文件所在文件夹
         let uriPath = edior.document.uri.path
         if (uriPath.includes('.')) {
-          uriPath = uriPath.replace(/[\/|\\]\w*.\w*$/gi, '')
+          uriPath = uriPath.replace(/[\/|\\]\w*\.\w*$/gi, '')
         }
         this.init(Uri.file(uriPath));
         this.way = this.GenerateWay.COMPONENT;
@@ -280,18 +398,62 @@ export class ComponentProvider {
    * 显示输入名称弹框
    */
   public async showPageNamePick(category: string) {
-    let placeholder = '前缀 - 页面生成规则为【前缀+文件名】';
-    if (category === '(miniapp)') {
-      placeholder = '页面名称';
-    }
+    let placeholder = '页面名称';
+    // if (category === '(miniapp)') {
+    //   placeholder = '页面名称';
+    // }
     let name = await window.showInputBox({
       placeHolder: placeholder
     });
     if (name) {
       this.pageName = name;
-      this.generate();
+      this.addPluginByFold(category, name)
     }
   }
+
+  public addPluginByFold(pluginName: string, entryName: string) {
+    let pluginItem: any = {}
+      for (let i = 0; i < this.pluginList.length; i++) {
+        const plugin = this.pluginList[i];
+        if (plugin.description.name === pluginName) {
+          pluginItem = plugin
+        }
+      }
+      let entryFileName = ''
+      let fileList: Code[] = []
+      pluginItem.code.forEach((codeItem: Code) => {
+        switch (codeItem.type) {
+          case 'file':
+            fileList.push(codeItem)
+            break;
+          case 'entry':
+            entryFileName = codeItem.name
+            break;
+          default:
+            break;
+        }
+      });
+      let pluginRootPath = path.join(this.context.extensionUri.path, 'asset/plugin')
+      if (this.uri) {
+        for (let i = 0; i < fileList.length; i++) {
+          const fileItem = fileList[i];
+          if (entryFileName && entryFileName === fileItem.name) {
+            if (!entryName.includes('.')) {
+              entryName += '.vue'
+            }
+            this.copyFile(winRootPathHandle(path.join(pluginRootPath, fileItem.code)), this.uri.path.replace(/[\/|\\]\w*\.\w*$/gi, ''), entryName)
+          } else {
+            let destinationPath = fileItem.position || fileItem.name
+            if (pluginItem.type === '2') {
+              destinationPath = pluginName + '/' + destinationPath
+            }
+            this.copyFile(winRootPathHandle(path.join(pluginRootPath, fileItem.code)), this.uri.path.replace(/[\/|\\]\w*\.\w*$/gi, ''), destinationPath)
+          }
+        }
+      }
+  }
+
+
 
   public setPage(root: string, file: string, msg: string, isGenerateSugguestion: boolean) {
     // 插件配置信息
@@ -344,7 +506,7 @@ export class ComponentProvider {
         }
       });
     }
-    let meteorJsonPath = path.join(this.projectRoot, 'meteor.json')
+    let meteorJsonPath = winRootPathHandle(path.join(this.projectRoot, 'meteor.json'))
     if (fs.existsSync(meteorJsonPath)) {
       let meteorConfig: any = fs.readFileSync(meteorJsonPath, 'utf-8')
       if (meteorConfig) {
@@ -1114,7 +1276,14 @@ ${space}},\n`;
       window.showInformationMessage('请先[登录](command:meteor.componentUpload)')
       return
     }
-    let res = await this.fetch.get('widget?tag=&type=&searchValue=', {
+    let meteorJsonPath = winRootPathHandle(path.join(this.projectRoot, 'meteor.json'))
+    let meteorConfigFile: any = {
+      language: 'vue3'
+    }
+    if (fs.existsSync(meteorJsonPath)) {
+      meteorConfigFile = JSON.parse(fs.readFileSync(meteorJsonPath, 'utf-8'))
+    }
+    let res = await this.fetch.get('widget?tag=' + meteorConfigFile.language + '&type=&searchValue=', {
       headers: {
         token: userInfo.token
       }
@@ -1128,43 +1297,370 @@ ${space}},\n`;
       console.log(error)
     }
 
-    // 文件同步
-    let retPromise: any = null
-    window.withProgress({
-      location: ProgressLocation.Notification,
-      title: 'meteor',
-      cancellable: true
-    }, (progress, _token) => {
-      let msg = '正在同步中，请耐心等待...';
-      progress.report({
-        increment: 0,
-        message: msg
-      });
-      new Promise(async (resolve, reject) => {
-        pluginData.forEach((pluginItem: any) => {
-          if (pluginItem.id === '282') {
-            pluginItem.code.forEach((code: any) => {
-              if (code.type === 'file' && code.name === 'application.vue') {
-                minioGet({
-                  filePath: code.code,
-                  uploadFilePath: code.name,
-                  fail: () => {
-                    reject('')
-                    retPromise && retPromise()
-                  }
-                })
-              }
-            });
+    // 文件同步, 使用文档生成
+    let pluginDocument = '{'
+    let pluginFiles: string[] = []
+    pluginData.forEach((pluginItem: any, pluginIndex: number) => {
+      pluginDocument += `"m${pluginItem.description.name}": "#### 插件名：${pluginItem.description.name} \\n `
+      pluginDocument += `描述：${pluginItem.description.remark} \\n `
+      pluginDocument += `${pluginItem.description.avatar} \\n `
+
+      let pluginParameterDoc = `#### 入参 \\n | 入参名称 | 默认值 | 必填| 说明 | \\n | :--- | :--- | :--- | :--- | \\n `
+      let pluginEventDoc = `#### 事件 \\n | 事件名称 | 事件函数 | 必填| 说明 | \\n | :--- | :--- | :--- | :--- | \\n `
+      
+      pluginItem.code.forEach((code: any) => {
+        if (code.code) {
+          if (code.type === 'file') {
+            pluginFiles.push(code.code)
           }
-        });
-        resolve('')
-        retPromise && retPromise()
+          if (code.type === 'parameterIn') {
+            let pluginParameterCode = JSON.parse(code.code)
+            pluginParameterDoc += `| ${pluginParameterCode.name || ''} | ${pluginParameterCode.def || ''} | ${pluginParameterCode.checked} | ${pluginParameterCode.desc || ''} |`
+          }
+          if (code.type === 'event') {
+            let pluginEventCode = JSON.parse(code.code)
+            pluginEventDoc += `| ${pluginEventCode.name || ''} | ${pluginEventCode.def || ''} | ${pluginEventCode.checked} | ${pluginEventCode.desc || ''} |`
+          }
+        }
       })
 
-      return new Promise((resolve) => {
-        retPromise = resolve
-      });
+      pluginDocument += pluginParameterDoc + ' \\n '
+      if (pluginIndex < pluginData.length - 1) {
+        pluginDocument += pluginEventDoc + ' \\n ",\n'
+      } else {
+        pluginDocument += pluginEventDoc + ' \\n "'
+      }
     })
+    pluginDocument += '}'
+    fs.writeFileSync(winRootPathHandle(path.join(this.context.extensionUri.path, 'asset/plugin/document.json')), pluginDocument)
+
+    this.minioGetIterator(0, pluginFiles, pluginRootPath)
+  }
+
+  // 开启插件建议
+  public openPluginSuggestions() {
+    let pluginPath = winRootPathHandle(path.join(this.context.extensionUri.path, 'asset/plugin/index.json'))
+    let config: any = fs.readFileSync(pluginPath, 'utf-8')
+    if (config) {
+      this.pluginList = JSON.parse(config)
+    }
+    this.suggestions = []
+    this.pluginList.forEach((plugin) => {
+      switch (plugin.type) {
+        case '2':
+          this.pluginPageSuggestions.push(plugin)
+          this.suggestions.push(this.completionItemFactory(plugin))
+          break;
+        case '3':
+          this.pluginComposiableSuggestions.push(plugin)
+          break;
+        case '5':
+          this.pluginPageSuggestions.push(plugin)
+          break;
+        default:
+          this.suggestions.push(this.completionItemFactory(plugin))
+          break;
+      }
+    });
+  }
+
+  public completionItemFactory(plugin: any) {
+    let documentation = ''
+    if (plugin.description) {
+      if (plugin.description.remark) {
+        documentation += `${plugin.description.remark} \n   `
+      }
+      if (plugin.description.avatar) {
+        documentation += `![meteor](${plugin.description.avatar}) \n  `
+      }
+    }
+    let completionItem = new CompletionItem(plugin.description.name)
+    let label = plugin.description.name
+    if (plugin.description.name[0] && plugin.description.name[0] !== 'm') {
+      label = 'm' + plugin.description.name
+    }
+    completionItem.label = label
+    completionItem.sortText = `000${plugin.description.name}`
+    completionItem.insertText = ''
+    completionItem.kind = CompletionItemKind.Snippet
+    completionItem.detail = `meteor [${plugin.description.name}]`
+    completionItem.documentation = new MarkdownString(documentation)
+    completionItem.command = { command: 'meteor.componentCompetion', title: 'completions', arguments: [plugin] }
+    return completionItem
+  }
+
+  // 插件插入
+  public pluginInsert(plugin: Plugin) {
+    // 文件内代码插入
+    this.pluginInsertInFile(plugin)
+    // 文件拷贝
+    // 依赖安装
+  }
+
+  public async pluginInsertInFile(plugin: Plugin) {
+    // 检验重复引入
+    this.activeTextEditor = window.activeTextEditor
+    if (!this.activeTextEditor) {
+      return
+    }
+    let isRepeat = false
+    let posterName: string | undefined = ''
+    let activeEditorDoc = this.activeTextEditor.document.getText()
+    if (activeEditorDoc.includes('// ' + plugin.description.name)) {
+      isRepeat = true
+      posterName = await window.showInputBox({
+        placeHolder: '输入后缀，避免重复'
+      });
+    }
+
+    // 当前位置代码块
+    let codeBlockList: Code[] = []
+    let jsImportList: Code[] = []
+    let jsCodeList: Code[] = []
+    let cssList: Code[] = []
+    let fileList: Code[] = []
+    let parameterList: Code[] = []
+    let eventList: Code[] = []
+    plugin.code.forEach((codeItem: Code) => {
+      switch (codeItem.type) {
+        case 'functionIn':
+          codeBlockList.push(codeItem)
+          break;
+        case 'dependency':
+          jsImportList.push(codeItem)
+          break;
+        case 'fileInJs':
+          jsCodeList.push(codeItem)
+          break;
+        case 'fileInCss':
+          cssList.push(codeItem)
+          break;
+        case 'file':
+          fileList.push(codeItem)
+          break;
+        case 'parameterIn':
+          parameterList.push(codeItem)
+          break
+        case 'event':
+          eventList.push(codeItem)
+          break
+        default:
+          break;
+      }
+    });
+
+    // codeBlockList处理
+    // 组件codeBlockList需要拼接出来
+    let variableCodeList: Code[] = []
+    if (plugin.type === '2') {
+      let pluginCode = `<${plugin.description.name} `
+      // 拼接入参
+      parameterList.forEach(parameter => {
+        let parameterItem = JSON.parse(parameter.code)
+        if (parameterItem.checked) {
+          let attrPrefix = ':'
+          let attrName = parameterItem.name.replace(/([A-Z])/g, (_: any, c: any) => {
+            return c ? '-' + c.toLowerCase() : '';
+          })
+          let variableName = parameterItem.name.replace(/(-[a-z])/g, (_: any, c: any) => {
+            return c ? c.toUpperCase() : '';
+          }).replace(/-/gi, '')
+          if (attrName.indexOf('v-') === 0) {
+            attrPrefix = ''
+          }
+          if (isRepeat) {
+            variableName += posterName
+          }
+          pluginCode += `${attrPrefix}${attrName}="${variableName}" `
+          switch (parameterItem.type) {
+            case 'string':
+              variableCodeList.push({
+                code: `let ${variableName} = ref('${parameterItem.def}')`,
+                name: '',
+                position: '',
+                type: 'fileInJs'
+              })
+              break;
+            case 'integer':
+              variableCodeList.push({
+                code: `let ${variableName} = ref(${parameterItem.def})`,
+                name: '',
+                position: '',
+                type: 'fileInJs'
+              })
+              break;
+            case 'boolean':
+              variableCodeList.push({
+                code: `let ${variableName} = ref(${parameterItem.def || 'false'})`,
+                name: '',
+                position: '',
+                type: 'fileInJs'
+              })
+              break;
+            case 'array':
+              variableCodeList.push({
+                code: `let ${variableName} = ref(${parameterItem.def || '[]'})`,
+                name: '',
+                position: '',
+                type: 'fileInJs'
+              })
+              break;
+            case 'object':
+              variableCodeList.push({
+                code: `let ${variableName} = ref(${parameterItem.def || '{}'})`,
+                name: '',
+                position: '',
+                type: 'fileInJs'
+              })
+              break;
+            default:
+              break;
+          }
+        }
+      });
+
+      // 拼接事件
+      eventList.forEach((evt) => {
+        let evtItem = JSON.parse(evt.code)
+        if (evtItem.checked) {
+          let attrPrefix = '@'
+          let attrName = evtItem.name.replace(/([A-Z])/g, (_: any, c: any) => {
+            return c ? '-' + c.toLowerCase() : '';
+          })
+          let variableName = evtItem.def.replace(/(-[a-z])/g, (_: any, c: any) => {
+            return c ? c.toUpperCase() : '';
+          }).replace(/-/gi, '')
+          if (isRepeat) {
+            variableName += posterName
+          }
+          pluginCode += `${attrPrefix}${attrName}="${variableName}" `
+          variableCodeList.push({
+            code: `function ${variableName}() {\n}`,
+            name: '',
+            position: '',
+            type: 'fileInJs'
+          })
+        }
+      })
+      pluginCode = pluginCode.trim()
+      pluginCode += `></${plugin.description.name}>`
+      
+      codeBlockList.push({
+        name: '',
+        code: pluginCode,
+        position: '',
+        type: 'functionIn'
+      })
+      jsCodeList = jsCodeList.concat(variableCodeList)
+    }
+
+    // codeBlockList jsImportList jsCodeList cssCodeList 插入
+    let jsImport = {
+      text: '',
+      line: 0
+    }
+    let jsCode = {
+      text: '',
+      line: 0
+    }
+    let cssCode = {
+      text: '',
+      line: 0
+    }
+    let lineCount = this.activeTextEditor.document.lineCount
+    let current = 0
+    while (current < lineCount) {
+      let lineText = this.activeTextEditor.document.lineAt(current);
+      if (isRepeat) {
+        // 重复加载只生成变量、函数
+        if (/^\s*<\/script.*>\s*$/.test(lineText.text)) {
+          // javascript代码
+          if (variableCodeList.length > 0) {
+            jsCode.text = `// ${plugin.description.name}\n`
+            variableCodeList.forEach((jsItemItem) => {
+              jsCode.text += jsItemItem.code + '\n'
+              jsCode.line = current
+            })
+          }
+        }
+      } else {
+        if (/^\s*<script.*>\s*$/.test(lineText.text)) {
+          // import位置
+          jsImportList.forEach((jsImportItem) => {
+            jsImport.text += jsImportItem.code + '\n'
+            jsImport.line = current
+          })
+        }
+        if (/^\s*<\/script.*>\s*$/.test(lineText.text)) {
+          // javascript代码
+          if (jsCodeList.length > 0) {
+            jsCode.text = `// ${plugin.description.name}\n`
+            jsCodeList.forEach((jsItemItem) => {
+              jsCode.text += jsItemItem.code + '\n'
+              jsCode.line = current
+            })
+          }
+        }
+        if (/^\s*<\/style.*>\s*$/.test(lineText.text)) {
+          // css代码
+          if (cssList.length > 0) {
+            cssList.forEach((cssItem) => {
+              cssCode.text += cssItem.code + '\n'
+              cssCode.line = current
+            })
+          }
+        }
+      }
+      current++
+    }
+
+    this.activeTextEditor.edit((editBuilder) => {
+      if (this.activeTextEditor?.selection.active) {
+        let insertText = ''
+        codeBlockList.forEach(codeBlock => {
+          insertText += codeBlock.code + '\n'
+        });
+        if (isRepeat) {
+          insertText = insertText.replace(/\$\$/gi, posterName || '')
+        }
+        editBuilder.insert(this.activeTextEditor?.selection.active, insertText)
+
+        if (jsImport.line > 0) {
+          editBuilder.insert(new Position(jsImport.line + 1, 0), jsImport.text)
+        }
+        if (jsCode.line > 0) {
+          editBuilder.insert(new Position(jsCode.line, 0), jsCode.text)
+        }
+        if (cssCode.line > 0) {
+          editBuilder.insert(new Position(cssCode.line, 0), cssCode.text)
+        }
+      }
+    })
+
+    // 文件导入
+    if (!isRepeat) {
+      let pluginRootPath = path.join(this.context.extensionUri.path, 'asset/plugin')
+      for (let i = 0; i < fileList.length; i++) {
+        const fileItem = fileList[i];
+        this.copyFile(winRootPathHandle(path.join(pluginRootPath, fileItem.code)), this.activeTextEditor.document.uri.path.replace(/[\/|\\]\w*\.\w*$/gi, ''), fileItem.position || fileItem.name)
+      }
+    }
+  }
+
+  public copyFile(source: string, destinationRootPath: string, destination: string) {
+    try {
+      let destinationList = destination.split('/')
+      for (let i = 0; i < destinationList.length - 1; i++) {
+        const dir = destinationList[i];
+        destinationRootPath = path.join(destinationRootPath, dir)
+        if (!fs.existsSync(winRootPathHandle(destinationRootPath))) {
+          fs.mkdirSync(winRootPathHandle(destinationRootPath))
+        }
+      }
+      fs.cpSync(source, winRootPathHandle(path.join(destinationRootPath, destinationList[destinationList.length - 1])))
+    } catch (error) {
+      // window.showWarningMessage('')
+    }
   }
 
   async sync2() {
@@ -1326,7 +1822,7 @@ ${space}},\n`;
     }
     let uriPath = this.activeTextEditor.document.uri.path
     if (uriPath.includes('.')) {
-      uriPath = uriPath.replace(/[\/|\\]\w*.\w*$/gi, '')
+      uriPath = uriPath.replace(/[\/|\\]\w*\.\w*$/gi, '')
     }
     this.init(Uri.file(uriPath))
     this.way = this.GenerateWay.COMPONENT
@@ -1354,30 +1850,38 @@ ${space}},\n`;
       let tree: any[] = []
       let componentName = ''
       let baseProjectPath = ''
+      let isPageAddFile = this.pluginParam.opt === 'addPlugin'
+      let files: any[] = []
+
+      componentName = dirPath.replace(/.*[\/|\\]/gi, '')
 
       if (stat.isDirectory()) {
-        tree = traverseFile(dirPath.replace(/.*[\/|\\]/gi, ''), dirPath.replace(/[\/|\\]\w*$/gi, ''))
-        baseProjectPath = dirPath
+        if (isPageAddFile) {
+          tree = traverseFile(dirPath.replace(/.*[\/|\\]/gi, ''), dirPath.replace(/[\/|\\]\w*$/gi, ''))
+          baseProjectPath = dirPath.replace(/[\/|\\]\w*$/gi, '')
+        } else {
+          tree = traverseFile(dirPath.replace(/.*[\/|\\]/gi, ''), dirPath.replace(/[\/|\\]\w*$/gi, ''))
+          baseProjectPath = dirPath
+        }
       } else {
-        componentName = dirPath.replace(/.*[\/|\\]/gi, '')
-        baseProjectPath = dirPath.replace(/[\/|\\]\w*.\w*$/gi, '')
-      }
+        baseProjectPath = dirPath.replace(/[\/|\\]\w*\.\w*$/gi, '')
 
-      let files: any[] = []
-      if (tree.length > 0) {
-        files = this.traverseTree(tree, '', true)
-      }
-      if (componentName) {
         files.push({
           name: componentName,
           position: componentName,
-          url: new Date().getTime() + componentName
+          url: isPageAddFile ? componentName : new Date().getTime() + componentName
         })
       }
 
-      this.pluginParam = {
-        baseProjectPath: baseProjectPath,
+      if (tree.length > 0) {
+        files = files.concat(this.traverseTree(tree, '', !isPageAddFile))
       }
+
+      if (isPageAddFile && baseProjectPath !== this.pluginParam.baseProjectPath) {
+        return window.showInformationMessage('只能添加同目录下的文件或目录')
+      }
+
+      this.pluginParam.baseProjectPath = baseProjectPath
 
       const config = workspace.getConfiguration('meteor');
       let user: any = config.get('user')
@@ -1389,14 +1893,25 @@ ${space}},\n`;
         return
       }
       if (files.length > 0) {
-        this.minioUploadIterator(0, files, `${userInfo.token}/common`, () => {
+        if (isPageAddFile) {
+          this.pluginParam.tree = tree
+          this.pluginParam.files = this.pluginParam.files.concat(files)
           this.activeView?.webview.postMessage({ command: 'addPluginFile', params: {
             tree,
             files,
             name: componentName,
             baseProjectPath: baseProjectPath,
           }});
-        })
+        } else {
+          this.minioUploadIterator(0, files, `${userInfo.token}/common`, () => {
+            this.activeView?.webview.postMessage({ command: 'addPluginFile', params: {
+              tree,
+              files,
+              name: componentName,
+              baseProjectPath: baseProjectPath,
+            }});
+          })
+        }
       }
     } catch (error) {
       console.log(error)
@@ -1412,23 +1927,30 @@ ${space}},\n`;
     try {
       let stat = fs.statSync(dirPath)
       let tree = []
-      let componentName = ''
+      let componentName = dirPath.replace(/.*[\/|\\]/gi, '')
       let baseProjectPath = ''
       let type = ''
+      let entry = ''
+      let name = ''
       if (stat.isDirectory()) {
-        baseProjectPath = dirPath
+        baseProjectPath = dirPath.replace(/[\/|\\]\w*$/gi, '')
         // 组件
         type = '2'
+        tree = traverseFile('', dirPath)
+        name = componentName
       } else {
-        baseProjectPath = dirPath.replace(/[\/|\\]\w*.\w*$/gi, '')
+        baseProjectPath = dirPath.replace(/[\/|\\]\w*\.\w*$/gi, '')
         // 页面
         type = '5'
+        entry = componentName
+        name = componentName
       }
-      componentName = baseProjectPath.replace(/.*[\/|\\]/gi, '')
-      tree = traverseFile('', baseProjectPath)
+      
       this.pluginParam = {
         tree,
-        name: componentName,
+        files: [],
+        name: name,
+        entry: entry,
         type,
         baseProjectPath: baseProjectPath,
         opt: 'addPlugin'
@@ -1444,10 +1966,21 @@ ${space}},\n`;
    */
   public uploadFilePlugin(data: any) {
     let files: any[] = []
-    if (this.pluginParam.tree.length > 0) {
-      files = this.traverseTree(this.pluginParam.tree, '')
-    }
+    let isPageAddFile = this.pluginParam.opt === 'addPlugin'
 
+    if (this.pluginParam.tree.length > 0) {
+      if (isPageAddFile) {
+        let treeDir = ''
+        if (this.pluginParam.entry) {
+          treeDir = this.pluginParam.tree[0].position.replace(/\/.*/gi, '')
+        } else {
+          treeDir = this.pluginParam.name
+        }
+        files = this.traverseTree(this.pluginParam.tree, treeDir)
+      } else {
+        files = this.traverseTree(this.pluginParam.tree, '')
+      }
+    }
     const config = workspace.getConfiguration('meteor');
     let user: any = config.get('user')
     let userInfo: any = {}
@@ -1457,8 +1990,35 @@ ${space}},\n`;
       window.showInformationMessage('请先[登录](command:meteor.componentUpload)')
       return
     }
+    let uploadBasePath = `${userInfo.token}/${data.type}`
+    if (this.pluginParam.entry) {
+      uploadBasePath = `${userInfo.token}/${data.type}/${data.description.name}`
+    }
+
+    if (this.pluginParam.entry) {
+      // 入口文件
+      files.push({
+        name: this.pluginParam.entry,
+        position: this.pluginParam.entry,
+        url: this.pluginParam.entry
+      })
+    }
+
+    if (this.pluginParam.files && this.pluginParam.files.length > 0) {
+      // 过滤不在目录下文件
+      this.pluginParam.files.forEach((fileItem: any) => {
+        if (!fileItem.position.includes('/')) {
+          files.push({
+            name: fileItem.position,
+            position: fileItem.position,
+            url: fileItem.position
+          })
+        }
+      });
+    }
+
     if (files.length > 0) {
-      this.minioUploadIterator(0, files, `${userInfo.token}/${data.type}/${data.description.name}`)
+      this.minioUploadIterator(0, files, uploadBasePath)
     }
   }
 
@@ -1487,6 +2047,30 @@ ${space}},\n`;
       },
       fail: () => {
         this.activeView?.webview.postMessage({ command: 'minioUpload', status: false});
+      }
+    })
+  }
+
+  public minioGetIterator(current: number, files: any[], userPath: string, callback?: Function) {
+    const fileItemPath = files[current]
+    minioGet({
+      uploadFilePath: '/' + fileItemPath,
+      filePath: winRootPathHandle(path.join(userPath, fileItemPath)),
+      success: () => {
+        if (files.length > current + 1) {
+          this.minioGetIterator(current + 1, files, userPath, callback)
+        } else {
+          // 全部上传完成
+          if (callback) {
+            callback()
+          } else {
+            window.showInformationMessage('同步完成')
+            this.openPluginSuggestions()
+          }
+        }
+      },
+      fail: () => {
+        window.showInformationMessage(`同步失败，请重试`)
       }
     })
   }
@@ -1586,4 +2170,82 @@ class ComponentCompletionItemProvider implements CompletionItemProvider {
   //   throw new Error('Method not implemented.');
   // }
   
+}
+
+// 文档通过 hover 形式查看
+class ComponentHoverProvider implements HoverProvider {
+  public Documents: any
+
+  constructor(docPath: string) {
+    this.updateDocument(docPath)
+  }
+
+  public updateDocument(docPath: string) {
+    try {
+      let doc = fs.readFileSync(docPath, 'utf-8')
+      if (doc) {
+        this.Documents = JSON.parse(doc)
+      }
+    } catch (error) {
+      
+    }
+  }
+
+  // 获取属性所属标签
+  public getTag(document: any, position: any): String {
+    let line = position.line;
+    let tagName = '';
+
+    while(line > 0 && !tagName) {
+      let lineInfo: TextLine = document.lineAt(line);
+      let text = lineInfo.text.trim();
+      // 本行则获取光标位置前文本
+      if(line === position.line) {
+        text = text.substring(0, position.character);
+      }
+      let txtArr = text.match(/<[^(>/)]+/gim);
+      if(txtArr) {
+        for (let i = (txtArr.length - 1); i >= 0; i--) {
+          if(txtArr[i][0] === '<' && txtArr[i][1] !== '/') {
+            if(txtArr[i].indexOf(' ') !== -1) {
+              tagName = txtArr[i].replace(/^<(\S*)(\s.*|\s*)/gi, '$1');
+            } else {
+              tagName = txtArr[i].replace(/^<(.*)/gi, '$1');
+            }
+            break;
+          }
+        }
+      }
+      --line;
+    }
+    return tagName;
+  }
+  provideHover(document: TextDocument, position: Position): ProviderResult<import("vscode").Hover> {
+    const line = document.lineAt(position.line);
+    const textSplite = [' ', '<', '>', '"', '\'', '.', '\\', "=", ":"];
+    // 通过前后字符串拼接成选择文本
+    let posIndex = position.character;
+    let textMeta = line.text.substr(posIndex, 1);
+    let selectText = '';
+    // 前向获取符合要求的字符串
+    while(textSplite.indexOf(textMeta) === -1 && posIndex <= line.text.length) {
+      selectText += textMeta;
+      textMeta = line.text.substr(++posIndex, 1);
+    }
+    // 往后获取符合要求的字符串
+    posIndex = position.character - 1;
+    textMeta = line.text.substr(posIndex, 1);
+    while(textSplite.indexOf(textMeta) === -1 && posIndex > 0) {
+      selectText = textMeta + selectText;
+      textMeta = line.text.substr(--posIndex, 1);
+    }
+    textMeta = line.text.substr(posIndex, 1);
+
+    // tag标签便利
+    if(this.Documents[selectText]) {
+      return new Hover(this.Documents[selectText]);
+    }
+
+    return null
+  }
 }

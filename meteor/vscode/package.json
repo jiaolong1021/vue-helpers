@@ -230,7 +230,15 @@
       },
       {
         "command": "meteor.generatePage",
-        "title": "生成页面"
+        "title": "添加页面"
+      },
+      {
+        "command": "meteor.openComponentAddDialog",
+        "title": "添加组件"
+      },
+      {
+        "command": "meteor.openComposiableAddDialog",
+        "title": "添加组合函数"
       },
       {
         "command": "meteor.uploadFilePlugin",
@@ -260,7 +268,15 @@
       "explorer/context": [
         {
           "command": "meteor.generatePage",
-          "group": "0_meteor"
+          "group": "0_meteor_add"
+        },
+        {
+          "command": "meteor.openComponentAddDialog",
+          "group": "0_meteor_add"
+        },
+        {
+          "command": "meteor.openComposiableAddDialog",
+          "group": "0_meteor_add"
         },
         {
           "command": "meteor.uploadFilePlugin",
