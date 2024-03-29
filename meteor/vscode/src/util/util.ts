@@ -5,8 +5,8 @@ import * as fs from 'fs'
 
 const opn = require('opn');
 export const url = {
-  // base: 'http://www.80fight.cn:8080',
-  base: 'http://localhost:8080',
+  base: 'http://www.80fight.cn:8080',
+  // base: 'http://localhost:8080',
   official: 'http://www.80fight.cn',
   component: 'http://front.80fight.cn'
 }
@@ -26,7 +26,8 @@ export function getWorkspaceRoot(documentUrl: string) {
   return winRootPathHandle(url)
 }
 export function getRelativePath(src: string, dist: string) {
-  let vfPath = path.relative(src, dist)
+  let vfPath = path.relative(winRootPathHandle(src), dist)
+  vfPath = vfPath.replace(/\\/gi, '/')
   if (vfPath.startsWith('../')) {
     vfPath = vfPath.substr(1, vfPath.length)
   }

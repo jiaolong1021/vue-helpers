@@ -56,28 +56,17 @@ export default class Traverse {
     if (rootPath.endsWith(poster)) {
       let posterReg = new RegExp('-?(.*)' + (poster ? poster : '\\.\\w*') + '$', 'gi');
       let name = rootPath;
-      if (poster === '.vue') {
-        name = name.replace(/([A-Z_])/g, (_, c) => {
-          if (c === '_') {
-            return '-';
-          } else {
-            return c ? ('-' + c.toLowerCase()) : '';
-          }
-        }).replace(posterReg, '$1'); 
-      } else {
-        name = name.replace(posterReg, '$1');
-      }
-      // dir = dir.replace(posterReg, '$1');
+      name = name.replace(posterReg, '$1'); 
       if (!search || (search && dir.includes(search))) {
         files.push({
           name: name,
-          path: dir.replace(new RegExp(`^${prefix.path}`, 'gi'), prefix.alias)
+          path: dir.replace(new RegExp(`^${prefix.path}`, 'gi'), prefix.alias).replace(/\\/gi, '/')
         });
         if (name === 'index') {
           name = dir.replace(/.*\/(\w*)\/\w*.\w*/gi, '$1')
           files.push({
             name: name,
-            path: dir.replace(new RegExp(`^${prefix.path}`, 'gi'), prefix.alias)
+            path: dir.replace(new RegExp(`^${prefix.path}`, 'gi'), prefix.alias).replace(/\\/gi, '/')
           })
         }
       }

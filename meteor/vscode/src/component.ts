@@ -2,7 +2,7 @@ import * as path from 'path';
 import * as fs from 'fs'
 import { ExtensionContext, commands, window, WebviewPanel, ViewColumn, Uri, Disposable, workspace, ConfigurationTarget, TextEditor,
   QuickPickItem, Position, ProgressLocation, languages, CompletionItemProvider, CompletionItemKind, CompletionItem, CompletionList,
-  MarkdownString, ProviderResult, TextDocument, HoverProvider, TextLine, Hover } from 'vscode'
+  MarkdownString, ProviderResult, TextDocument, HoverProvider, TextLine, Hover, SnippetString} from 'vscode'
 import { open, url, getHtmlForWebview, winRootPathHandle, getWorkspaceRoot, getRelativePath } from './util/util'
 import axios, { AxiosInstance } from 'axios';
 import vuePropsDef from './util/vueProps';
@@ -96,6 +96,7 @@ export class ComponentProvider {
       this.openView()
     }))
     this.context.subscriptions.push(commands.registerCommand('meteor.componentSync', () => {
+      this.init()
       this.sync()
     }))
     this.context.subscriptions.push(commands.registerCommand('meteor.componentCompetion', (plugin: Plugin) => {
@@ -202,7 +203,7 @@ export class ComponentProvider {
 		pagePick.show();
   }
 
-  // 添加组合函数
+  // 添加文件
   public showPickComposiable(uri: Uri) {
     this.init(uri)
     this.way = this.GenerateWay.PAGE
@@ -218,8 +219,8 @@ export class ComponentProvider {
     });
     
     const pagePick = window.createQuickPick();
-    pagePick.title = '添加组合函数'
-    pagePick.placeholder = '选择组合函数'
+    pagePick.title = '添加文件'
+    pagePick.placeholder = '选择文件'
     pagePick.items = pickItems
     pagePick.onDidChangeSelection(selection => {
       pagePick.hide();
@@ -1333,8 +1334,16 @@ ${space}},\n`;
     })
     pluginDocument += '}'
     fs.writeFileSync(winRootPathHandle(path.join(this.context.extensionUri.path, 'asset/plugin/document.json')), pluginDocument)
+    if (pluginFiles.length > 0) {
+      this.minioGetIterator(0, pluginFiles, pluginRootPath)
+    } else {
+      this.syncDone()
+    }
+  }
 
-    this.minioGetIterator(0, pluginFiles, pluginRootPath)
+  public syncDone() {
+    window.showInformationMessage('同步完成')
+    this.openPluginSuggestions()
   }
 
   // 开启插件建议
@@ -1371,7 +1380,9 @@ ${space}},\n`;
         documentation += `${plugin.description.remark} \n   `
       }
       if (plugin.description.avatar) {
-        documentation += `![meteor](${plugin.description.avatar}) \n  `
+        let avatarPaths = plugin.description.avatar.split('/')
+        avatarPaths[avatarPaths.length - 1] = '1' + avatarPaths[avatarPaths.length - 1]
+        documentation += `![meteor](${avatarPaths.join('/')}) \n  `
       }
     }
     let completionItem = new CompletionItem(plugin.description.name)
@@ -1381,11 +1392,23 @@ ${space}},\n`;
     }
     completionItem.label = label
     completionItem.sortText = `000${plugin.description.name}`
-    completionItem.insertText = ''
     completionItem.kind = CompletionItemKind.Snippet
-    completionItem.detail = `meteor [${plugin.description.name}]`
+    completionItem.detail = plugin.description.description
+
+    if (plugin.type === '0') {
+      let insertText = ''
+      plugin.code.forEach((codeItem: Code) => {
+        if (codeItem.type === 'functionIn') {
+          insertText = codeItem.code
+        }
+      });
+      completionItem.insertText = new SnippetString(insertText)
+    } else {
+      completionItem.insertText = ''
+      completionItem.command = { command: 'meteor.componentCompetion', title: 'completions', arguments: [plugin] }
+    }
+
     completionItem.documentation = new MarkdownString(documentation)
-    completionItem.command = { command: 'meteor.componentCompetion', title: 'completions', arguments: [plugin] }
     return completionItem
   }
 
@@ -1427,7 +1450,9 @@ ${space}},\n`;
           codeBlockList.push(codeItem)
           break;
         case 'dependency':
-          jsImportList.push(codeItem)
+          if (!isRepeat) {
+            jsImportList.push(codeItem)
+          }
           break;
         case 'fileInJs':
           jsCodeList.push(codeItem)
@@ -1571,44 +1596,30 @@ ${space}},\n`;
     let current = 0
     while (current < lineCount) {
       let lineText = this.activeTextEditor.document.lineAt(current);
-      if (isRepeat) {
-        // 重复加载只生成变量、函数
-        if (/^\s*<\/script.*>\s*$/.test(lineText.text)) {
-          // javascript代码
-          if (variableCodeList.length > 0) {
-            jsCode.text = `// ${plugin.description.name}\n`
-            variableCodeList.forEach((jsItemItem) => {
-              jsCode.text += jsItemItem.code + '\n'
-              jsCode.line = current
-            })
-          }
-        }
-      } else {
-        if (/^\s*<script.*>\s*$/.test(lineText.text)) {
-          // import位置
-          jsImportList.forEach((jsImportItem) => {
-            jsImport.text += jsImportItem.code + '\n'
-            jsImport.line = current
+      if (/^\s*<script.*>\s*$/.test(lineText.text)) {
+        // import位置
+        jsImportList.forEach((jsImportItem) => {
+          jsImport.text += jsImportItem.code + '\n'
+          jsImport.line = current
+        })
+      }
+      if (/^\s*<\/script.*>\s*$/.test(lineText.text)) {
+        // javascript代码
+        if (jsCodeList.length > 0) {
+          jsCode.text = `// ${plugin.description.name}\n`
+          jsCodeList.forEach((jsItemItem) => {
+            jsCode.text += jsItemItem.code + '\n'
+            jsCode.line = current
           })
         }
-        if (/^\s*<\/script.*>\s*$/.test(lineText.text)) {
-          // javascript代码
-          if (jsCodeList.length > 0) {
-            jsCode.text = `// ${plugin.description.name}\n`
-            jsCodeList.forEach((jsItemItem) => {
-              jsCode.text += jsItemItem.code + '\n'
-              jsCode.line = current
-            })
-          }
-        }
-        if (/^\s*<\/style.*>\s*$/.test(lineText.text)) {
-          // css代码
-          if (cssList.length > 0) {
-            cssList.forEach((cssItem) => {
-              cssCode.text += cssItem.code + '\n'
-              cssCode.line = current
-            })
-          }
+      }
+      if (/^\s*<\/style.*>\s*$/.test(lineText.text)) {
+        // css代码
+        if (cssList.length > 0) {
+          cssList.forEach((cssItem) => {
+            cssCode.text += cssItem.code + '\n'
+            cssCode.line = current
+          })
         }
       }
       current++
@@ -1620,19 +1631,16 @@ ${space}},\n`;
         codeBlockList.forEach(codeBlock => {
           insertText += codeBlock.code + '\n'
         });
-        if (isRepeat) {
-          insertText = insertText.replace(/\$\$/gi, posterName || '')
-        }
-        editBuilder.insert(this.activeTextEditor?.selection.active, insertText)
+        editBuilder.insert(this.activeTextEditor?.selection.active, insertText.replace(/\$\$/gi, posterName || ''))
 
         if (jsImport.line > 0) {
-          editBuilder.insert(new Position(jsImport.line + 1, 0), jsImport.text)
+          editBuilder.insert(new Position(jsImport.line + 1, 0), jsImport.text.replace(/\$\$/gi, posterName || ''))
         }
         if (jsCode.line > 0) {
-          editBuilder.insert(new Position(jsCode.line, 0), jsCode.text)
+          editBuilder.insert(new Position(jsCode.line, 0), jsCode.text.replace(/\$\$/gi, posterName || ''))
         }
         if (cssCode.line > 0) {
-          editBuilder.insert(new Position(cssCode.line, 0), cssCode.text)
+          editBuilder.insert(new Position(cssCode.line, 0), cssCode.text.replace(/\$\$/gi, posterName || ''))
         }
       }
     })
@@ -2064,8 +2072,7 @@ ${space}},\n`;
           if (callback) {
             callback()
           } else {
-            window.showInformationMessage('同步完成')
-            this.openPluginSuggestions()
+            this.syncDone()
           }
         }
       },

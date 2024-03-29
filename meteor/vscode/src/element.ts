@@ -148,9 +148,7 @@ class ElementCompletionItemProvider implements CompletionItemProvider {
         } else {
           filePath = getRelativePath(this._document.uri.path, path.join(this.elementProvider.explorer.projectRootPath, vf.path))
         }
-        let camelName = vf.name.replace(/(-[a-z])/g, (_: any, c: any) => {
-          return c ? c.toUpperCase() : '';
-        }).replace(/-/gi, '');
+        let camelName = vf.name
         let insertPath = filePath
         if (filePath.endsWith('.ts')) {
           insertPath = filePath.substring(0, filePath.length - 3)
@@ -198,7 +196,7 @@ class ElementCompletionItemProvider implements CompletionItemProvider {
         insertText: new SnippetString(`${vf.name}$0></${vf.name}>`),
         kind: CompletionItemKind.Folder,
         detail: 'meteor',
-        documentation: '内部组件: ' + vf.path,
+        documentation: `import ${vf.name} from '${vf.path}'`,
         command: { command: 'meteor.funcEnhance', title: 'meteor: funcEnhance' }
       });
     }
@@ -239,7 +237,7 @@ class ElementCompletionItemProvider implements CompletionItemProvider {
         insertText: new SnippetString(`${vf.name}$0></${vf.name}>`),
         kind: CompletionItemKind.Folder,
         detail: 'meteor',
-        documentation: '内部组件: ' + vf.path,
+        documentation: `import ${vf.name} from '${vf.path}'`,
         command: { command: 'meteor.funcEnhance', title: 'meteor: funcEnhance' }
       });
     }

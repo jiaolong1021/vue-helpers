@@ -21,7 +21,7 @@ export const config = `{
       "type": "",
       "url": "",
       "username": "",
-      "password": "",
+      "password": ""
     }],
     "package": {
       "jenkinsUrl": "http://jenkins.cs2025.com",
@@ -50,7 +50,7 @@ export const config = `{
       "type": "",
       "url": "",
       "username": "",
-      "password": "",
+      "password": ""
     }],
     "package": {
       "jenkinsUrl": "http://jenkins.cs2025.com",
@@ -79,7 +79,7 @@ export const config = `{
       "type": "",
       "url": "",
       "username": "",
-      "password": "",
+      "password": ""
     }],
     "package": {
       "jenkinsUrl": "http://jenkins.cs2025.com",

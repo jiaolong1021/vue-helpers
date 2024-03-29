@@ -3,6 +3,7 @@ import { ExplorerProvider } from './explorer'
 import { asNormal, setTabSpace, getWorkspaceRoot, getRelativePath } from './util/util'
 import Traverse from './util/traverse'
 var glob = require("glob")
+// import * as path from 'path';
 
 export default class Assist {
   public context: ExtensionContext
@@ -47,12 +48,51 @@ export default class Assist {
   public funcEnhance() {
     let editor = window.activeTextEditor;
     if (!editor) { return; }
-    let txt = editor.document.lineAt(editor.selection.anchor.line).text;
-    if (/.*@[\w-.]*=\"\w.*\"/gi.test(txt)) {
-      // vue名称，跳转并生成函数
-      this.jumpAndGenerateMtd()
-    } else {
-      this.autoEnhance()
+    let character = (window.activeTextEditor?.selection.anchor.character || 0) - 1;
+    let txt = window.activeTextEditor?.document.lineAt(window.activeTextEditor?.selection.anchor.line).text;
+    let word: string = '';
+    let isWordEnd = false
+    let type = '' // '0': 变量 '1': 函数
+    while(txt && character && character > 0) {
+      let wordSingle = txt[character]
+      if (wordSingle === '"') {
+        type = '0'
+        isWordEnd = true
+      }
+      if (wordSingle === ' ') {
+        break
+      }
+      if (!isWordEnd) {
+        word = wordSingle + word;
+      }
+      if (wordSingle === '@') {
+        type = '1'
+      }
+      --character;
+    }
+    // 没有参数往后找
+    character = (window.activeTextEditor?.selection.anchor.character || 0);
+    while(txt && character && txt.length > character) {
+      if (txt[character] === '"') {
+        break;
+      }
+      word = word + txt[character];
+      ++character;
+    }
+
+    switch (type) {
+      case '0':
+        // 变量自动生成
+        this.jumpAndGenerateVar(word)
+        break;
+      case '1':
+        // vue名称，跳转并生成函数
+        this.jumpAndGenerateMtd(word)
+        break;
+    
+      default:
+        this.autoEnhance()
+        break;
     }
   }
 
@@ -117,9 +157,7 @@ export default class Assist {
     for (let i = 0; i < this.vueFiles.length; i++) {
       const vf : any = this.vueFiles[i];
       if (tag === vf.name) {
-        let name = vf.name.replace(/(-[a-z])/g, (_: any, c: string) => {
-          return c ? c.toUpperCase() : '';
-        }).replace(/-/gi, '');
+        let name = vf.name;
         // 不重复插入引入
         if (editor.document.getText().includes(`import ${name}`)) {
           return
@@ -232,27 +270,7 @@ export default class Assist {
     }
   }
 
-  public jumpAndGenerateMtd() {
-    // 查找方法名称
-    let character = (window.activeTextEditor?.selection.anchor.character || 0) - 1;
-    let txt = window.activeTextEditor?.document.lineAt(window.activeTextEditor?.selection.anchor.line).text;
-    let word: string = '';
-    while(txt && character && character > 0) {
-      if (txt[character] === '"') {
-        break;
-      }
-      word = txt[character] + word;
-      --character;
-    }
-    // 没有参数往后找
-    character = (window.activeTextEditor?.selection.anchor.character || 0);
-    while(txt && character && txt.length > character) {
-      if (txt[character] === '"') {
-        break;
-      }
-      word = word + txt[character];
-      ++character;
-    }
+  public jumpAndGenerateMtd(word: string) {
     if (window.activeTextEditor?.document && window.activeTextEditor?.selection.anchor.line) {
       let lineCount = window.activeTextEditor.document.lineCount;
       let currentLine = window.activeTextEditor?.selection.anchor.line;
@@ -314,6 +332,30 @@ export default class Assist {
             lineStart = lineEnd = editor.visibleRanges.length;
           }
           editor.revealRange(new Range(new Position(lineStart, isInMethods ? 4 : 0), new Position(lineEnd, isInMethods ? 4 : 0)), TextEditorRevealType.Default);
+        });
+      }
+    }
+  }
+
+  public jumpAndGenerateVar(word: string) {
+    if (window.activeTextEditor?.document && window.activeTextEditor?.selection.anchor.line) {
+      let lineCount = window.activeTextEditor.document.lineCount;
+      let currentLine = window.activeTextEditor?.selection.anchor.line;
+      while(currentLine < lineCount) {
+        let text = window.activeTextEditor.document.lineAt(currentLine).text;
+        if (/^\s*<\/script>\s*$/g.test(text)) {
+          break;
+        }
+        ++currentLine;
+      }
+      if (currentLine < lineCount) {
+        let editor = window.activeTextEditor;
+        editor.edit((editBuilder) => {
+          editBuilder.insert(new Position(currentLine, 0), `const ${word} = ref()\n`);
+        }).then(() => {
+          let jumpCol = 13 + word.length
+          editor.revealRange(new Range(new Position(currentLine, jumpCol), new Position(currentLine, jumpCol)), TextEditorRevealType.Default);
+          editor.selection = new Selection(new Position(currentLine, jumpCol), new Position(currentLine, jumpCol));
         });
       }
     }
@@ -741,17 +783,23 @@ export default class Assist {
         quickPick.items = []
         return
       }
-      let filePaths: string[] = glob.sync(workspace.rootPath + `/!(node_modules)/**/${fileName}*`);
+      let rootPath = workspace.rootPath?.replace(/\\/gi, '/')
+      let filePaths: string[] = glob.sync(rootPath + `/**/${fileName}*`, {
+        ignore: [
+          rootPath + `/node_modules/**`
+        ]
+      });
       if (filePaths.length === 0) {
         quickPick.items = []
         return
       }
       let items: QuickPickItem[] = []
       filePaths.forEach(p => {
-        let name = p.replace(/.*\/(.*)\..*/gi, '$1')
+        p = p.replace(/\\/gi, '/')
+        let name = p.replace(/.*\/(.*)/gi, '$1')
         items.push({
           label: name,
-          description: getRelativePath(basePath, p)
+          description: getRelativePath(basePath.replace(/\\/gi, '/'), p)
         })
       });
       quickPick.items = items

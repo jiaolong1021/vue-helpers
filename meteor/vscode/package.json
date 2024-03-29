@@ -1,6 +1,6 @@
 {
   "name": "meteor-zl",
-  "version": "2.0.5",
+  "version": "3.1.4",
   "description": "every thing for speed",
   "keywords": [
     "meteor",
@@ -238,7 +238,7 @@
       },
       {
         "command": "meteor.openComposiableAddDialog",
-        "title": "添加组合函数"
+        "title": "添加文件"
       },
       {
         "command": "meteor.uploadFilePlugin",
@@ -467,7 +467,6 @@
     "esbuild-plugin-copy": "^2.0.2",
     "execa": "^6.1.0",
     "find-chrome-bin": "^1.0.2",
-    "glob": "^8.1.0",
     "jsonc-parser": "^3.2.0",
     "mitt": "^3.0.0",
     "opn": "^6.0.0",
@@ -478,6 +477,7 @@
   },
   "gitHead": "b1cc40df44b9cd73ba96d8b7f0369cc3ce690c45",
   "dependencies": {
+    "glob": "^10.3.12",
     "minio": "^7.1.3"
   }
 }
