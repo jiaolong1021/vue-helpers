@@ -9,6 +9,7 @@ import { getLocation } from 'jsonc-parser'
 import { execa } from 'execa'
 import axios, { AxiosInstance } from 'axios';
 var CryptoJS = require("crypto-js");
+import { DbFactory } from "./util/db";
 
 // 仓库
 class LibraryTreeItem extends TreeItem {
@@ -92,6 +93,9 @@ export class ExplorerProvider {
     url: '',
     token: ''
   }
+  public db: DbFactory | undefined
+  public tableList: any[] = []
+  public tableColumns: any[] = []
 
   constructor(context: ExtensionContext) {
     this.context = context
@@ -189,6 +193,7 @@ export class ExplorerProvider {
     if (meteorConfig) {
       try {
         this.config = JSON.parse(meteorConfig)
+        this.dbConnect()
         this.updateSwaggerConfig()
       } catch (error) {
       }
@@ -356,6 +361,64 @@ export class ExplorerProvider {
       //   fs.appendFileSync(gitignorePath, '\n' + this.packageName)
       // }
       // this.setConfDir(path.join(this.projectRootPath, 'conf'))
+    }
+    // 数据库连接
+    this.dbConnect()
+  }
+
+  public dbConnect() {
+    let activeEnvConfig = this.config[this.activeEnv]
+    if (activeEnvConfig && activeEnvConfig.db && activeEnvConfig.db.host) {
+      this.db = new DbFactory(activeEnvConfig.db)
+      setTimeout(async () => {
+        this.queryDbTable()
+      }, 3000);
+    }
+  }
+
+  public async queryDbTable() {
+    if (this.db?.isConnect) {
+      switch (this.db.type) {
+        case 'mysql':
+          this.db.client.query(`select * from information_schema.tables where table_schema = '${this.db.dbData.database}'`, (_err: any, rows: any[]) => {
+            if (_err) {
+              return
+            }
+            this.tableList = rows
+          })
+          break;
+        case 'postgres':
+          const result = await this.db.client.query(` select * from information_schema.tables where table_schema in (${this.db.dbData.mode || "'public'"})`)
+          this.tableList = result.rows
+          break;
+      
+        default:
+          break;
+      }
+    }
+  }
+
+  public async queryDbColumns(tableName: string, callback: Function) {
+    if (this.db?.isConnect) {
+      switch (this.db.type) {
+        case 'mysql':
+          this.db.client.query(`select * from information_schema.columns where table_schema = '${this.db.dbData.database}' and table_name = '${tableName}'`, (_err: any, rows: any[]) => {
+            if (_err) {
+              return
+            }
+            callback(rows)
+            this.tableColumns = rows
+          })
+          break;
+        case 'postgres':
+          const result = await this.db.client.query(` select * from information_schema.columns where table_schema in (${this.db.dbData.mode || "'public'"}) and table_name = '${tableName}'`)
+          this.tableColumns = result.rows
+          callback(result.rows)
+          break;
+      
+        default:
+          break;
+      }
     }
   }
 

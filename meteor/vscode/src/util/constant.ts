@@ -17,12 +17,15 @@ export const config = `{
     "interface": {
       "swaggerUrl": []
     },
-    "db": [{
+    "db": {
       "type": "",
-      "url": "",
-      "username": "",
-      "password": ""
-    }],
+      "host": "",
+      "port": "",
+      "user": "",
+      "password": "",
+      "database": "",
+      "mode": ""
+    },
     "package": {
       "jenkinsUrl": "http://jenkins.cs2025.com",
       "jenkinsUsername": "admin",
@@ -46,12 +49,15 @@ export const config = `{
     "interface": {
       "swaggerUrl": []
     },
-    "db": [{
+    "db": {
       "type": "",
-      "url": "",
-      "username": "",
-      "password": ""
-    }],
+      "host": "",
+      "port": "",
+      "user": "",
+      "password": "",
+      "database": "",
+      "mode": ""
+    },
     "package": {
       "jenkinsUrl": "http://jenkins.cs2025.com",
       "jenkinsUsername": "admin",
@@ -75,12 +81,15 @@ export const config = `{
     "interface": {
       "swaggerUrl": []
     },
-    "db": [{
+    "db": {
       "type": "",
-      "url": "",
-      "username": "",
-      "password": ""
-    }],
+      "host": "",
+      "port": "",
+      "user": "",
+      "password": "",
+      "database": "",
+      "mode": ""
+    },
     "package": {
       "jenkinsUrl": "http://jenkins.cs2025.com",
       "jenkinsUsername": "admin",

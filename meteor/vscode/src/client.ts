@@ -7,6 +7,7 @@ import { PkgProvider } from './pkg';
 import { DeployProvider } from './deploy';
 import Assist from './assist';
 import ElementProvider from './element';
+import { FormProvider } from './form';
 
 export function activate(context: ExtensionContext) {
   // 工程
@@ -44,4 +45,7 @@ function init(context: ExtensionContext) {
     
     const element = new ElementProvider(explorer, context)
     element.register()
+
+    const form = new FormProvider(explorer, context)
+    form.register()
 }
