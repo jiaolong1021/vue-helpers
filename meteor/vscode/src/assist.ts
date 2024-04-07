@@ -53,6 +53,9 @@ export default class Assist {
     let word: string = '';
     let isWordEnd = false
     let type = '' // '0': 变量 '1': 函数
+    if (txt && txt.includes('"')) {
+      type = '0'
+    }
     while(txt && character && character > 0) {
       let wordSingle = txt[character]
       if (wordSingle === '"') {
@@ -339,23 +342,58 @@ export default class Assist {
 
   public jumpAndGenerateVar(word: string) {
     if (window.activeTextEditor?.document && window.activeTextEditor?.selection.anchor.line) {
+      let words = word.split('.')
       let lineCount = window.activeTextEditor.document.lineCount;
       let currentLine = window.activeTextEditor?.selection.anchor.line;
-      while(currentLine < lineCount) {
-        let text = window.activeTextEditor.document.lineAt(currentLine).text;
-        if (/^\s*<\/script>\s*$/g.test(text)) {
-          break;
+
+      let variable = words[words.length - 1]
+      let parentVariable = word.substring(0, word.length - variable.length - 1)
+      let parentLine = 0
+
+      if (parentVariable) {
+        let parentVariableReg = new RegExp(`\\s*[var|let|const]\\s*${parentVariable}\\s*=`, 'gi')
+        while(currentLine < lineCount) {
+          let text = window.activeTextEditor.document.lineAt(currentLine).text;
+
+          if (parentVariableReg.test(text)) {
+            parentLine = currentLine
+          }
+  
+          if (/^\s*<\/script>\s*$/g.test(text)) {
+            break;
+          }
+          ++currentLine;
         }
-        ++currentLine;
+      } else {
+        while(currentLine < lineCount) {
+          let text = window.activeTextEditor.document.lineAt(currentLine).text;
+  
+          if (/^\s*<\/script>\s*$/g.test(text)) {
+            break;
+          }
+          ++currentLine;
+        }
       }
+
       if (currentLine < lineCount) {
         let editor = window.activeTextEditor;
+        let insertLineHasParent = parentLine + 1
         editor.edit((editBuilder) => {
-          editBuilder.insert(new Position(currentLine, 0), `const ${word} = ref()\n`);
+          if (parentLine > 0) {
+            editBuilder.insert(new Position(insertLineHasParent, 0), `  ${variable}: '',\n`);
+          } else {
+            editBuilder.insert(new Position(currentLine, 0), `const ${variable} = ref()\n`);
+          }
         }).then(() => {
-          let jumpCol = 13 + word.length
-          editor.revealRange(new Range(new Position(currentLine, jumpCol), new Position(currentLine, jumpCol)), TextEditorRevealType.Default);
-          editor.selection = new Selection(new Position(currentLine, jumpCol), new Position(currentLine, jumpCol));
+          if (parentLine > 0) {
+            let jumpCol = 5 + variable.length
+            editor.revealRange(new Range(new Position(insertLineHasParent, jumpCol), new Position(insertLineHasParent, jumpCol)), TextEditorRevealType.Default);
+            editor.selection = new Selection(new Position(insertLineHasParent, jumpCol), new Position(insertLineHasParent, jumpCol));
+          } else {
+            let jumpCol = 13 + variable.length
+            editor.revealRange(new Range(new Position(currentLine, jumpCol), new Position(currentLine, jumpCol)), TextEditorRevealType.Default);
+            editor.selection = new Selection(new Position(currentLine, jumpCol), new Position(currentLine, jumpCol));
+          }
         });
       }
     }

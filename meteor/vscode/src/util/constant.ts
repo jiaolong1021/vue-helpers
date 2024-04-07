@@ -1,6 +1,7 @@
 export const config = `{
   "activeEnv": "development",
   "language": "vue3",
+  "framework": ["element-plus"],
   "rootPath": {
     "root": "@=src",
     "view": "src/views",

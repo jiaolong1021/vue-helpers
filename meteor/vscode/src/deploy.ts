@@ -493,18 +493,23 @@ export class DeployProvider {
     })
     this.envList = res.data.data
     this.explorer.setCloudEnvSuggestions(this.envList, this.config.cloudUrl, this.token)
+    window.showInformationMessage('同步环境信息完成')
   }
 
   public async login() {
-    const res = await this.explorer.fetch({
-      url: `${this.config.cloudUrl}/api/login`,
-      method: 'post',
-      data: {
-        username: this.config.cloudUsername,
-        password: this.explorer.decrypt(this.config.cloudPassword)
-      }
-    })
-    this.token = res.data.data.token
+    try {
+      const res = await this.explorer.fetch({
+        url: `${this.config.cloudUrl}/api/login`,
+        method: 'post',
+        data: {
+          username: this.config.cloudUsername,
+          password: this.explorer.decrypt(this.config.cloudPassword)
+        }
+      })
+      this.token = res.data.data.token
+    } catch (error) {
+      window.showErrorMessage('登录容器云失败')
+    }
   }
 
   public getConfig() {

@@ -1284,11 +1284,18 @@ ${space}},\n`;
     if (fs.existsSync(meteorJsonPath)) {
       meteorConfigFile = JSON.parse(fs.readFileSync(meteorJsonPath, 'utf-8'))
     }
-    let res = await this.fetch.get('widget?tag=' + meteorConfigFile.language + '&type=&searchValue=', {
+    let framework = `''`
+    if (meteorConfigFile.framework) {
+      meteorConfigFile.framework.forEach((frame: string) => {
+        framework += `,'${frame}'`
+      });
+    }
+    let res = await this.fetch.get(`widget?tag="common","${meteorConfigFile.language || ''}"&framework=${framework}&type=&searchValue=`, {
       headers: {
         token: userInfo.token
       }
     })
+    
     let pluginRootPath = path.join(this.context.extensionUri.path, 'asset/plugin');
     let pluginEntry = winRootPathHandle(path.join(pluginRootPath, 'index.json'));
     let pluginData = res.data.data
@@ -1302,9 +1309,11 @@ ${space}},\n`;
     let pluginDocument = '{'
     let pluginFiles: string[] = []
     pluginData.forEach((pluginItem: any, pluginIndex: number) => {
-      pluginDocument += `"m${pluginItem.description.name}": "#### 插件名：${pluginItem.description.name} \\n `
-      pluginDocument += `描述：${pluginItem.description.remark} \\n `
-      pluginDocument += `${pluginItem.description.avatar} \\n `
+      if (['0', '1', '4'].includes(pluginItem.type)) {
+        pluginDocument += `"m${pluginItem.description.name}": "#### 插件名：${pluginItem.description.name} \\n `
+        pluginDocument += `描述：${(pluginItem.description.remark || '').replace(/\n/gi, '@@')} \\n `
+        pluginDocument += `${pluginItem.description.avatar} \\n `
+      }
 
       let pluginParameterDoc = `#### 入参 \\n | 入参名称 | 默认值 | 必填| 说明 | \\n | :--- | :--- | :--- | :--- | \\n `
       let pluginEventDoc = `#### 事件 \\n | 事件名称 | 事件函数 | 必填| 说明 | \\n | :--- | :--- | :--- | :--- | \\n `
@@ -1325,11 +1334,13 @@ ${space}},\n`;
         }
       })
 
-      pluginDocument += pluginParameterDoc + ' \\n '
-      if (pluginIndex < pluginData.length - 1) {
-        pluginDocument += pluginEventDoc + ' \\n ",\n'
-      } else {
-        pluginDocument += pluginEventDoc + ' \\n "'
+      if (['0', '1', '4'].includes(pluginItem.type)) {
+        pluginDocument += pluginParameterDoc + ' \\n '
+        if (pluginIndex < pluginData.length - 1) {
+          pluginDocument += pluginEventDoc + ' \\n ",\n'
+        } else {
+          pluginDocument += pluginEventDoc + ' \\n "'
+        }
       }
     })
     pluginDocument += '}'
@@ -1358,7 +1369,6 @@ ${space}},\n`;
       switch (plugin.type) {
         case '2':
           this.pluginPageSuggestions.push(plugin)
-          this.suggestions.push(this.completionItemFactory(plugin))
           break;
         case '3':
           this.pluginComposiableSuggestions.push(plugin)
@@ -2191,7 +2201,7 @@ class ComponentHoverProvider implements HoverProvider {
     try {
       let doc = fs.readFileSync(docPath, 'utf-8')
       if (doc) {
-        this.Documents = JSON.parse(doc)
+        this.Documents = JSON.parse(doc.replace(/@@/gi, '\n'))
       }
     } catch (error) {
       
