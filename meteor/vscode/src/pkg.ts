@@ -10,6 +10,8 @@ export class PkgProvider {
   public explerer: ExplorerProvider
   public browser: any
   public page: any
+  public packageNoRemain = 120
+  public packageNoSi: any = null
 
   constructor(context: ExtensionContext, explerer: ExplorerProvider) {
     this.context = context
@@ -43,13 +45,22 @@ export class PkgProvider {
     }))
   }
 
+  public clearSi() {
+    if (this.packageNoSi) {
+      clearInterval(this.packageNoSi)
+      this.packageNoSi = null
+    }
+  }
+
   public async run(type: string, showMsg: boolean) {
     let ret = ''
     if (showMsg) {
       if (type === 'build') {
         window.showInformationMessage('开始编译...')
       } else {
-        window.showInformationMessage('正在获取最新打包状态...')
+        if (!this.packageNoSi) {
+          window.showInformationMessage('正在获取最新打包状态...')
+        }
       }
     }
     // 获取分支
@@ -66,6 +77,7 @@ export class PkgProvider {
         executablePath = findChromePath.executablePath
         if (!executablePath) {
           window.showInformationMessage('未找到Chrome浏览器')
+          this.clearSi()
           return ''
         }
         store.set('chromePath', executablePath)
@@ -130,6 +142,7 @@ export class PkgProvider {
           }
         } catch (error) {
           window.showInformationMessage(error as any)
+          this.clearSi()
         }
   
         // 判断分支是否设置
@@ -171,7 +184,20 @@ export class PkgProvider {
           }
           execa('git', ['tag', version], { cwd: this.explerer.projectRootPath })
           execa('git', ['push', 'origin', version], { cwd: this.explerer.projectRootPath })
-          window.showInformationMessage(`开始打包,仓库已打标签[${version}], 3s后可尝试获取镜像地址...`)
+          window.showInformationMessage(`开始打包,仓库已打标签[${version}]`)
+          this.packageNoRemain = 120
+          if (this.packageNoSi) {
+            clearInterval(this.packageNoSi)
+            this.packageNoSi = null
+          }
+          this.packageNoSi = setInterval(() => {
+            if (this.packageNoRemain < 0) {
+              clearInterval(this.packageNoSi)
+              this.packageNoRemain = 120
+            }
+            this.packageNoRemain -= 4
+            this.run('version', true)
+          }, 4000)
         } else {
           window.showInformationMessage(`[前往设置分支](${pkgConfig.jenkinsUrl}/job/${pkgConfig.jenkinsJob || project}/configure)`)
         }
@@ -196,7 +222,9 @@ export class PkgProvider {
         if (statusList.length > 0) {
           let status = statusList[0]
           if (status.status === 'fail') {
-            window.showInformationMessage(`最新编译失败, [查看失败原因](${pkgConfig.jenkinsUrl}/job/${pkgConfig.jenkinsJob || project})`)
+            if (!this.packageNoSi) {
+              window.showInformationMessage(`最新编译失败, [查看失败原因](${pkgConfig.jenkinsUrl}/job/${pkgConfig.jenkinsJob || project})`)
+            }
           } else {
             let version = status.innerText.replace(/#/gi, '')
             await this.page.goto(`${pkgConfig.jenkinsUrl}/job/${pkgConfig.jenkinsJob || project}/${version}/console`)
@@ -211,6 +239,7 @@ export class PkgProvider {
                   ret = outItem.replace(new RegExp(`.*Untagged:\\s(.*:${version}).*`, 'gi'), '$1')
                   if (showMsg) {
                     env.clipboard.writeText(ret)
+                    this.clearSi()
                     window.showInformationMessage('最新编译成功，已复制到剪切板 \n 镜像地址: ' + ret)
                   }
                   break
@@ -224,6 +253,7 @@ export class PkgProvider {
     } catch (error) {
       console.log(error)
       window.showInformationMessage(error as any)
+      this.clearSi()
     }
   }
 }
