@@ -1,6 +1,6 @@
-import { commands, ExtensionContext, TextDocument, window, Position, CompletionItem, CompletionItemKind, CompletionItemProvider, CompletionList, 
+import { commands, ExtensionContext, window, Position, CompletionItem, CompletionItemKind, CompletionItemProvider, CompletionList, 
   ProviderResult, languages, MarkdownString, QuickPickItem } from 'vscode'
-import { getWorkspaceRoot, open, setTabSpace, getCurrentWord, getSwaggerKey } from './util/util'
+import { getWorkspaceRoot, open, setTabSpace, getSwaggerKey } from './util/util'
 import * as path from 'path'
 import * as fs from 'fs'
 import { ExplorerProvider } from './explorer';
@@ -31,6 +31,7 @@ export class IntfProvider {
   private fileType: String = 'ts' // 生成文件类型
   private projectRootPath: string = '' // 工程所在位置
   public static apiCompletionItem: CompletionItem[] = []
+  public static parameterCompletionItem: CompletionItem[] = []
   public projectApiPath: string = ''
   public requestPath: string = ''
   public rootPrefix: string = ''
@@ -53,6 +54,7 @@ export class IntfProvider {
     file: "{}",
     object: "{}",
   }
+  public parameterList: string[] = []
 
   constructor(context: ExtensionContext, explorer: ExplorerProvider) {
     this.context = context
@@ -124,7 +126,10 @@ export class IntfProvider {
       this.generateApiFile(params.apiName, params.url)
     }))
     this.context.subscriptions.push(
-      languages.registerCompletionItemProvider(['vue', 'javascript', 'typescript', 'html', 'wxml'], new ApiCompletionItemProvider(), '')
+      languages.registerCompletionItemProvider(['vue', 'javascript', 'typescript', 'html', 'wxml'], new ApiCompletionItemProvider(), 'g', 'p', 'd')
+    )
+    this.context.subscriptions.push(
+      languages.registerCompletionItemProvider(['vue', 'javascript', 'typescript', 'html', 'wxml'], new ParameterCompletionItemProvider(), '')
     )
     this.getSwaggerUrl(false)
     this.url && this.getApi(false)
@@ -138,6 +143,7 @@ export class IntfProvider {
     let insertLine = 0
     let insertCharacter = 0
     let filePath = this.getFullPath(this.api[url][apiName].filePath)
+    filePath = filePath.replace(/\\/gi, '/')
     let insertText = `import { ${apiName} } from '${filePath}'\n`
     let line = 0
     let findPosition = false
@@ -270,6 +276,7 @@ export class IntfProvider {
     try {
       this.definitions = {}
       IntfProvider.apiCompletionItem = []
+      IntfProvider.parameterCompletionItem = []
       for (let i = 0; i < urlList.length; i++) {
         const uri = urlList[i];
         const res = await this.explorer.fetch({
@@ -288,6 +295,19 @@ export class IntfProvider {
           default:
             break;
         }
+
+        // 定义字段抽离，用于提示
+        if (this.definitions[uri.url]) {
+          for (const key in this.definitions[uri.url]) {
+            const definition = this.definitions[uri.url][key]
+            if (definition.type === 'object' && definition.properties) {
+              for (const propertyKey in definition.properties) {
+                this.addParamter(propertyKey)
+              }
+            }
+          }
+        }
+
         // 通过接口第一级来定义存放文件
         for (const apiPath in res.data.paths) {
           const req = res.data.paths[apiPath];
@@ -372,7 +392,7 @@ export class IntfProvider {
             this.api[uri.url][apiName] = {
               reqPath: apiPath,
               annotation: annotation,
-              description: reqBody.description || '',
+              description: reqBody.summary + '[' + reqBody.description + ']',
               filePath: path.join(this.projectApiPath, `${apiPaths[0] || apiPaths[1]}`),
               method: reqMtd,
               params: reqBody.parameters
@@ -426,19 +446,16 @@ export class IntfProvider {
               }
             }
             insertText += '})'
-  
-            let link = ''
-            let linkSimple = reqBody.tags[0] + '/' + reqBody.operationId
-            if (reqBody.tags && reqBody.tags.length > 0) {
-              link = uri.url + '#/' + linkSimple
-            }
+            
             let completionItem = new CompletionItem(apiName)
             completionItem.kind = CompletionItemKind.Function
             completionItem.insertText = insertText
-            completionItem.documentation = new MarkdownString(`#### ${reqBody.description}
-  接口地址: [${linkSimple}](${link})
-  
-  存放路径: ${this.getFullPath(path.join(this.projectApiPath, `${apiPaths[0] || apiPaths[1]}.${this.fileType}`))}`)
+            completionItem.documentation = new MarkdownString(`#### ${reqBody.summary}
+  描述： ${reqBody.description}
+
+  接口： ${apiPath}
+
+  存放路径: ${this.getFullPath(path.join(this.projectApiPath, `${apiPaths[0] || apiPaths[1]}.${this.fileType}`)).replace(/\\/gi, '/')}`)
             completionItem.sortText = '444' + IntfProvider.apiCompletionItem.length
             completionItem.command = { command: 'meteor.generateApiFile', title: 'meteor.generateApiFile', arguments: [{
               apiName,
@@ -451,6 +468,10 @@ export class IntfProvider {
           window.showInformationMessage(`${i}/${urlList.length}: 同步完成${uri.url}`)
         }
       }
+
+      // 添加变量字段提示
+      this.addParamterSuggestions()
+
       if (showMsg) {
         window.showInformationMessage('同步完成')
       }
@@ -531,6 +552,7 @@ export class IntfProvider {
                     params += `${this.tabSpace}${this.tabSpace}${key}: ${this.paramsDefault[paramKey.type] || "''"},\n`
                   }
                 } else {
+                  this.addParamter(param.name)
                   params += `${this.tabSpace}${this.tabSpace}${param.name}: '',\n`
                 }
               } else if (param.schema.$ref) {
@@ -566,12 +588,15 @@ export class IntfProvider {
                     params = serializer + params
                   }
                   params += `${this.tabSpace}${this.tabSpace}${param.name}: [],\n`
+                  this.addParamter(param.name)
                 }
               } else {
                 params += `${this.tabSpace}${this.tabSpace}${param.name}: '',\n`
+                this.addParamter(param.name)
               }
             } else {
               params += `${this.tabSpace}${this.tabSpace}${param.name}: ${this.paramsDefault[param.type] || "''"},\n`
+              this.addParamter(param.name)
             }
             break;
           case 'formData':
@@ -579,6 +604,7 @@ export class IntfProvider {
               params += `const formData = new FormData()\n`
             }
             params += `formData.append('${param.name}', {})\n`
+            this.addParamter(param.name)
             break;
           default:
             break;
@@ -598,6 +624,22 @@ export class IntfProvider {
       value: params,
       position: position
     }
+  }
+
+  public addParamter(parameter: string) {
+    if (!this.parameterList.includes(parameter)) {
+      this.parameterList.push(parameter)
+    }
+  }
+
+  public addParamterSuggestions() {
+    
+    this.parameterList.forEach(parameter => {
+      let completionItem = new CompletionItem(parameter)
+      completionItem.kind = CompletionItemKind.Field
+      completionItem.insertText = parameter
+      IntfProvider.parameterCompletionItem.push(completionItem)
+    });
   }
 
   // 获取请求地址
@@ -624,6 +666,12 @@ export class IntfProvider {
             api: baseUrl + '/v3/api-docs',
             version: 3
           })
+        } else {
+          urls.push({
+            url: url,
+            api: url,
+            version: url.includes('/v2/') ? 2 : 3
+          })
         }
       } else {
         window.showInformationMessage('请检查swagger地址是否正确')
@@ -634,15 +682,13 @@ export class IntfProvider {
 }
 
 class ApiCompletionItemProvider implements CompletionItemProvider {
-  provideCompletionItems(document: TextDocument, position: Position): ProviderResult<CompletionItem[] | CompletionList<CompletionItem>> {
-    const word = getCurrentWord(document, position)
-    if (['p', 'g', 'd'].includes(word[0])) {
-      return IntfProvider.apiCompletionItem
-    } else {
-      return []
-    }
+  provideCompletionItems(): ProviderResult<CompletionItem[] | CompletionList<CompletionItem>> {
+    return IntfProvider.apiCompletionItem
   }
-  // resolveCompletionItem?(item: CompletionItem, token: CancellationToken): ProviderResult<CompletionItem> {
-  //   throw new Error('Method not implemented.');
-  // }
+}
+
+class ParameterCompletionItemProvider implements CompletionItemProvider {
+  provideCompletionItems(): ProviderResult<CompletionItem[] | CompletionList<CompletionItem>> {
+    return IntfProvider.parameterCompletionItem
+  }
 }
