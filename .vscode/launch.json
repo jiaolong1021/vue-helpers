@@ -11,10 +11,10 @@
 			"runtimeExecutable": "${execPath}",
 			"args": [
 				// "--disable-extensions",
-				"--extensionDevelopmentPath=${workspaceRoot}/meteor/vscode"
+				"--extensionDevelopmentPath=${workspaceRoot}"
 			],
 			"outFiles": [
-				"${workspaceRoot}/*/*/out/**/*.js"
+				"${workspaceRoot}/out/**/*.js"
 			],
 			"preLaunchTask": {
 				"type": "npm",
