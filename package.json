@@ -1,15 +1,16 @@
 {
-  "name": "meteor-zl",
+  "name": "vue-helpers",
   "version": "3.4.1",
   "description": "every thing for speed",
   "keywords": [
-    "meteor",
+    "vue-helpers",
+    "vue",
     "vscode"
   ],
   "icon": "asset/logo.png",
   "publisher": "shenjiaolong",
   "author": "shenjiaolong",
-  "homepage": "https://www.80fight.cn/",
+  "homepage": "https://vuehelpers.80fight.cn/",
   "license": "ISC",
   "main": "dist/client",
   "directories": {
@@ -21,13 +22,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://gitee.com/jiaolong1021/meteor.git"
+    "url": "https://github.com/jiaolong1021/vue-helpers.git"
   },
   "scripts": {
     "prebuild": "cd ../.. && npm run build",
-    "build": "npm run build:node",
+    "build": "tsc -b tsconfig.build.json",
     "build:node": "node scripts/build-node",
-    "watch": "npm run build:node -- --watch",
+    "watch": "npm run watch:base && npm run watch:vscode",
+    "watch:base": "tsc -b tsconfig.build.json -w",
+    "watch:vscode": "npm run build:node -- --watch",
     "prepack:node": "npm run prebuild && npm run build:node -- --minify",
     "release": "npm run release:node",
     "release:node": "npm run prepack:node && npm run publish",
